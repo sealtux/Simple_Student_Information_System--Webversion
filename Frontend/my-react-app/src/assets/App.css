@@ -1,5 +1,176 @@
-.header {
-  color: brown;
-  top: 10px;
-  position: relative;
+
+
+.background {
+  height: 100vh;   
+  width: 100vw;    
+  
+  background-color: rgb(255, 255, 255);
+  z-index: 1;
+}
+
+.navbar {
+  position: absolute;   
+  top: 10vh;              
+  left: 0;              
+  width: 100%;          
+  border-bottom: 0.1vw solid #cccccc; 
+  z-index: 2;           
+}
+
+.sidebar {
+  position: absolute;
+  top: 10vh;                  
+  right: 86vw;                
+  width: 1%;                 
+  height: 90vh;               
+  border-right: 0.1vw solid #cccccc;
+  z-index: 2;
+  font-size: 24;
+
+}
+.studentbutton{
+  position: absolute  ;
+  color: #2E3070;
+   top: -10vh;  
+    left :40vw;
+    font-size: 26px;
+  background-color: transparent;
+   font-family: 'Inter', sans-serif;
+  font-weight: 700; 
+   width: 6%;   
+  height: 4.95vw;
+ text-align: right;   
+  padding-left: 6px;
+  border-radius: 0;
+  
+    border: none;        /* remove default border always */
+  outline: none;       /* remove default outline always */
+  background: transparent; /* keeps it clean */
+  cursor: pointer;
+  transition: all 0.2s linear;
+}
+.studentbutton:hover{
+  background-color: #e2e0e0;
+  border: none;       /* make sure hover has no border */
+  outline: none;  
+
+}
+.studentbutton:active{
+  
+  border: none;       /* make sure hover has no border */
+  outline: none;  
+  height: 5vw;
+}
+
+.studentbutton:focus{
+  color: #5C5EAD;
+  background-color: transparent;
+  outline: none; 
+  border: none; 
+}
+
+.programbutton{
+  position: absolute  ;
+  color: #2E3070;
+   top: -10vh;  
+    left :47vw;
+    font-size: 26px;
+  background-color: transparent;
+   font-family: 'Inter', sans-serif;
+  font-weight: 700; 
+  width: 6vw;   
+  height: 5vw;
+  border-radius: 0;
+   text-align: left;   
+  padding-left: 2px;
+  transition: all 0.2s linear;
+   border: none;      
+  outline: none; 
+}
+.focusprogram{
+  position: absolute;   
+  top: -10vh;              
+  left: 47vw;              
+  width: 6%;          
+ 
+  z-index: 2;  
+}
+.programbutton:focus{
+  color: #5C5EAD;
+  background-color: transparent;
+  outline: none; 
+}
+.programbutton:hover{
+  background-color: #e2e0e0;
+  border: none;       /* make sure hover has no border */
+  outline: none;  
+
+}
+
+.collegebutton{
+  position: absolute  ;
+  color: #2E3070;
+   top: -10vh;  
+    left :54vw;
+    font-size: 26px;
+  background-color: transparent;
+   font-family: 'Inter', sans-serif;
+  font-weight: 700; 
+  width: 6vw;   
+  height: 5vw;
+  border-radius: 0;
+   text-align: left;   
+  padding-left: 10px; 
+  padding-right: 0;  
+  transition: all 0.2s linear;
+  border: none;
+  outline: none;
+}
+.collegebutton:focus{
+  color: #5C5EAD;
+  background-color: transparent;
+  outline: none; 
+}
+  .focuscollege{
+    position: absolute;   
+    top: -10vh;              
+    left: 54vw;              
+    width: 6%;          
+   
+    z-index: 2;  
+  }
+  .collegebutton:hover{
+  background-color: #e2e0e0;
+  border: none;       /* make sure hover has no border */
+  outline: none;  
+
+}
+  
+
+
+.navbar {
+  position: absolute;   
+  top: 10vh;              
+  left: 0;              
+  width: 100%;          
+  border-bottom: 0.1vw solid #cccccc; 
+  z-index: 2;           
+}
+.underline {
+  position: absolute;   
+  top: 15vh;              
+  left: -12vw;              
+  width: 12vw;          
+  height: 0;                 /* force no box height */
+  border-bottom: 0.1vw solid #cccccc; 
+  z-index: 2;
+}
+.recent{
+  position: absolute;
+  color:#2E3070;
+  top: 18vh;
+  left: -10.7vw;
+  width: 10vw;
+   font-weight: 700; 
+font-family: 'Inter', sans-serif;
 }
