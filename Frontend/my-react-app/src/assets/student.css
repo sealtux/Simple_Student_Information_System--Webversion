@@ -1,0 +1,55 @@
+.containers{
+    position: absolute;
+    top: 0vw;
+    left: 16vw;
+    
+}
+table {
+position: absolute;
+  border-collapse: separate;      /* allows border-radius */
+  border-spacing: 0;
+      /* outer table border */
+  border-radius: 10px;            /* round corners */
+   width: 80vw;
+  left: 0px;
+  top:0px;
+  
+                /* optional: prevent table from being too wide */
+  height: 20vh;
+table-layout: auto;
+
+                /* ensures corners are visible */
+}
+
+thead th {
+  
+  background-color: #D6D6F4;
+  border: none;
+  height: 7vh;     
+  font-size: 24;       /* sets header height */
+    font-weight: 600; 
+}
+
+thead th:first-child {
+  border-top-left-radius:8px;
+}
+
+thead th:last-child {
+  border-top-right-radius: 8px;
+}
+
+tbody td {
+  border-bottom: 1px solid #E7E7E7;
+  height: 40px;              /* sets row height */
+  vertical-align: middle;
+  font-size: 20px;           /* needs unit */
+  font-weight: 600;          /* semi-bold */
+}
+
+
+
+
+/* …and so on for each column */
+
+
+
