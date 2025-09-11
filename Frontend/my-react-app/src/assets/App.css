@@ -1,5 +1,19 @@
-
-
+.studentcontain {
+  position: absolute;
+  top: 200px;
+  left: 20px;
+  z-index: 3;
+}
+.programcontain{
+  position: absolute;
+  top: 50px;
+  left: 20px;
+}
+.collegecontain{
+  position: absolute;
+  top: 50px;
+  left: 20px;
+}
 .background {
   height: 100vh;   
   width: 100vw;    
@@ -43,21 +57,21 @@
   padding-left: 6px;
   border-radius: 0;
   
-    border: none;        /* remove default border always */
-  outline: none;       /* remove default outline always */
-  background: transparent; /* keeps it clean */
+    border: none;        
+  outline: none;      
+  background: transparent; 
   cursor: pointer;
   transition: all 0.2s linear;
 }
 .studentbutton:hover{
   background-color: #e2e0e0;
-  border: none;       /* make sure hover has no border */
+  border: none;      
   outline: none;  
 
 }
 .studentbutton:active{
   
-  border: none;       /* make sure hover has no border */
+  border: none;       
   outline: none;  
   height: 5vw;
 }
@@ -102,7 +116,7 @@
 }
 .programbutton:hover{
   background-color: #e2e0e0;
-  border: none;       /* make sure hover has no border */
+  border: none;      
   outline: none;  
 
 }
@@ -141,7 +155,7 @@
   }
   .collegebutton:hover{
   background-color: #e2e0e0;
-  border: none;       /* make sure hover has no border */
+  border: none;       
   outline: none;  
 
 }
@@ -161,7 +175,7 @@
   top: 15vh;              
   left: -12vw;              
   width: 12vw;          
-  height: 0;                 /* force no box height */
+  height: 0;                 
   border-bottom: 0.1vw solid #cccccc; 
   z-index: 2;
 }

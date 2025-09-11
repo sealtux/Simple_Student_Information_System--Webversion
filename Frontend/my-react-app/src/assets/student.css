@@ -1,24 +1,24 @@
 .containers{
     position: absolute;
-    top: 0vw;
-    left: 16vw;
+    top: 11vw;
+    left: 17.5vw;
     
 }
 table {
 position: absolute;
-  border-collapse: separate;      /* allows border-radius */
+  border-collapse: separate;    
   border-spacing: 0;
-      /* outer table border */
-  border-radius: 10px;            /* round corners */
+     
+  border-radius: 10px;           
    width: 80vw;
   left: 0px;
   top:0px;
   
-                /* optional: prevent table from being too wide */
+              
   height: 20vh;
 table-layout: auto;
 
-                /* ensures corners are visible */
+                
 }
 
 thead th {
@@ -26,7 +26,7 @@ thead th {
   background-color: #D6D6F4;
   border: none;
   height: 7vh;     
-  font-size: 24;       /* sets header height */
+  font-size: 24;     
     font-weight: 600; 
 }
 
@@ -39,17 +39,103 @@ thead th:last-child {
 }
 
 tbody td {
-  border-bottom: 1px solid #E7E7E7;
-  height: 40px;              /* sets row height */
-  vertical-align: middle;
-  font-size: 20px;           /* needs unit */
-  font-weight: 600;          /* semi-bold */
+  border-bottom: 2px solid #E7E7E7;
+  height: 40px;            
+  vertical-align: right;
+  font-size: 20px;           
+  font-weight: 600;         
+  padding: 1px 83px;
+}
+table td:nth-child(1) { 
+  
+  padding-left: 75px;
+}
+table td:nth-child(3) { 
+  
+  padding-left: 100px;
+}
+table td:nth-child(6) { 
+  text-align: center;
+}
+
+.bottomcon {
+  height: 4vw;
+  width: 99.75%;
+  
+  background-color: #ffffff;
+  position: absolute;
+  top: 26.4vw;
+  border-bottom-left-radius: 8px;
+   border-bottom-right-radius: 8px;
+    border-bottom: 2px solid #E7E7E7;
+    border-right: 2px solid #E7E7E7;
+    border-left: 2px solid #E7E7E7;
+}
+
+.bottombar {
+  height: 6.5vw;
+  width: 100.5vw;
+ 
+  background-color: #2E3070;
+  position: absolute;
+  top: 31.7vw;
+  left: -18vw;
+  z-index: 3;
+    
+}
+
+
+.editbut{
+  position: absolute;
+  background-color: #ffffff;
+  color:#2E3070;
+  border: 3px solid #2E3070;
+  font-size: 20px;
+  height: 50px;
+  font-weight: bold;
+  padding-top: 5px;
+  padding-left: 40px;
+  width: 160px;
+  left: 69vw;
+}
+.informationtext {
+  position: absolute;
+  color: #ffffff;
+  font-weight: bold  ;   
+  font-size: 40px;     
+   font-family: 'Inter',sans-serif;
+   top:1.6vw;
+   left: 8.7vw;
+}
+.copyright{
+  position: absolute;
+  top:4.2vw;
+   left: 78vw;
+}
+
+.terms{
+   position: absolute;
+  top:4.2vw;
+   left: 87vw;
+    text-decoration: underline;
 }
 
 
 
 
-/* …and so on for each column */
 
+td div {
+  padding: 6px 10px;
+  border-radius: 4px;
+ 
+}
 
+td div:hover {
+  background-color: #f0f0f0;
+  cursor: pointer;
+}
 
+.selected {
+  background-color: #e2e0e0;
+  font-weight: bold;
+}
