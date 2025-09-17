@@ -136,6 +136,7 @@ table td:nth-child(6) {
   padding-left: 40px;
   width: 170px;
   left: 10.5vw;
+    outline: none;
   top: -30.5vw;
 }
 .informationtext {
@@ -193,22 +194,24 @@ td div:hover {
   padding-left: 35px;
    width: 200px;
   border-radius: 10px;
-  left: 42vw; /* adjust placement */
+  left: 50vw; /* adjust placement */
   top: -4vw;
-  
+  outline: none;
   cursor: pointer;
 }
 
 .sort-popup {
   position: absolute;
   top: -1vw; /* adjust based on where button is */
-  left: 42.2vw;
-  background: white;
-  border: 1px solid #ccc;
+  left: 50.3vw;
+  background: rgb(255, 255, 255);
+  border: 3px solid #2E3070;
   border-radius: 6px;
   box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+  color:#2E3070;
   padding: 10px;
   z-index: 1000;
+  font-weight: bold;
 }
 
 .sort-popup p {
@@ -220,4 +223,101 @@ td div:hover {
 
 .sort-popup p:hover {
   background: #f0f0f0;
+}
+
+.search{
+  position: absolute;
+  background-color: #F2F2FF;
+  border: 3px solid #2E3070;
+  top: -4vw;
+   height: 49px;
+   width: 350px;
+   border-radius: 10px;
+    left:61vw; /* adjust placement */
+    top: -4vw;
+    color: #2E3070;
+     font-size: 20px;
+     padding: 0 20px;
+      outline: none;
+      font-weight: bold;
+}
+.search::placeholder {
+  color: #5d5f9b;      /* change color */
+  font-size: 20px;     /* change size */
+   font-weight: bold;
+}
+
+.no-results {
+  text-align: center;
+  font-size: 12px;    /* smaller than normal text */
+  color: gray;
+  font-style: italic;
+  padding: 4px;       /* less padding so the row is shorter */
+  text-decoration: none;
+  height: auto;       /* let it shrink naturally */
+  line-height: 1.2;   /* tighter spacing */
+}
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.modal-content {
+  background: #ffffff;
+   border: 3px solid #2E3070;
+  padding: 20px;
+  border-radius: 10px;
+  
+  
+  box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+  height: 20vw;
+  width: 30vw;
+}
+
+.addsub{
+  position: absolute;
+  left: 58vw;
+  top: 32vw;
+  height: 6vh;
+  width: 7vw;
+}
+.canceladd{
+  position: absolute;
+  left: 35vw;
+  top: 32vw;
+  height: 6vh;
+  width: 7vw;
+}
+.addid{
+  background-color: #F2F2FF;   /* 🔹 fixed typo */
+  border: 3px solid #2E3070;
+  font-weight: bold;
+  width: 20vw;
+  height: 4vh;
+  left: 40vw;
+  position: absolute;          /* 🔹 needed for left to work */
+  border-radius: 6px;
+  color: #2E3070;               /* optional: text color */
+  padding: 5px;                /* optional: for better input spacing */
+}
+.addfirst{
+  background-color: #F2F2FF;   /* 🔹 fixed typo */
+  border: 3px solid #2E3070;
+  font-weight: bold;
+  width: 20vw;
+  height: 4vh;
+  left: 40vw;
+  top: 42.5vh;
+  position: absolute;          /* 🔹 needed for left to work */
+  border-radius: 6px;
+  color: #2E3070;               /* optional: text color */
+  padding: 5px;                /* optional: for better input spacing */
 }
