@@ -61,20 +61,24 @@ function Student() {
     setShowSortMenu(false);
   };
 
-  const handleSearch = (e) => {
-    const value = e.target.value.toLowerCase();
-    setSearchTerm(value);
-    if (value === "") {
-      setStudents(originalStudents);
-    } else {
-      const filtered = originalStudents.filter((student) =>
-        Object.values(student).some((field) =>
-          String(field).toLowerCase().includes(value)
-        )
-      );
-      setStudents(filtered);
+ const handleSearch = async (e) => {
+  const value = e.target.value;
+  setSearchTerm(value);
+
+  if (value === "") {
+    // reload all students when search box is cleared
+    setStudents(originalStudents);
+  } else {
+    try {
+      const res = await fetch(`http://127.0.0.1:5000/students/search?q=${value}`);
+      const data = await res.json();
+      setStudents(data);
+    } catch (err) {
+      console.error("Error fetching search results:", err);
     }
-  };
+  }
+};
+
 
   // 🔹 NEW: handle add student
  // 🔹 handle add student (now POSTs to backend)
@@ -128,12 +132,12 @@ const handleAddStudent = (e) => {
           <div
             className="table-container"
             style={{
-              height: "26.3vw",
+              
               width: "79vw",
               border: "2px solid #E7E7E7",
               borderTopLeftRadius: "10px",
               borderTopRightRadius: "10px",
-              overflow: "auto",
+              
             }}
           >
             <table
@@ -154,31 +158,32 @@ const handleAddStudent = (e) => {
                   <th>Program Code</th>
                 </tr>
               </thead>
-              <tbody>
-                {students.length > 0 ? (
-                  students.map((student, rowIndex) => (
-                    <tr
-                      key={student.IdNumber || rowIndex}
-                      className={selectedRow === rowIndex ? "selected" : ""}
-                      onClick={() => setSelectedRow(rowIndex)}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <td>{student.IdNumber}</td>
-                      <td>{student.FirstName}</td>
-                      <td>{student.LastName}</td>
-                      <td>{student.YearLevel}</td>
-                      <td>{student.Gender}</td>
-                      <td>{student.ProgramCode}</td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="6" className="no-results">
-                      No results found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
+             <tbody>
+  {students.length > 0 ? (
+    students.map((student, rowIndex) => (
+      <tr key={student.IdNumber || rowIndex}>
+        <td>{student.IdNumber}</td>
+        <td>{student.FirstName}</td>
+        <td>{student.LastName}</td>
+        <td>{student.YearLevel}</td>
+        <td>{student.Gender}</td>
+        <td>{student.ProgramCode}</td>
+      </tr>
+    ))
+  ) : (
+    <tr className="no-results">
+      <td colSpan="6">No results found</td>
+    </tr>
+  )}
+
+  {/* filler rows */}
+  {Array.from({ length: Math.max(0, 3 - students.length) }).map((_, i) => (
+    <tr key={`filler-${i}`} className="filler-row">
+      <td colSpan="6">&nbsp;</td>
+    </tr>
+  ))}
+</tbody>
+
             </table>
           </div>
 
@@ -199,7 +204,7 @@ const handleAddStudent = (e) => {
               Edit
             </button>
 
-            {/* 🔹 UPDATED Add button */}
+            {/*  UPDATED Add button */}
             <button className="addbut" onClick={() => setShowAddForm(true)}>
               <img
                 src={addIcon}
@@ -353,6 +358,7 @@ const handleAddStudent = (e) => {
                     <label style={{ color: "#2E3070", fontWeight: "bold" }}>
                     Year Level:
                     <input
+                    placeholder="3rd Year"
                      style={{ color: "#2E3070", fontWeight: "bold" ,width: "20vw",height : "3vh"}}
                       type="text"
                       value={newStudent.YearLevel}

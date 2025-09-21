@@ -21,6 +21,11 @@ table-layout: auto;
                 
 }
 
+.table-container {
+  height: 26.3vw;
+  overflow: auto;
+}
+
 thead th {
   
   background-color: #D6D6F4;
@@ -46,26 +51,9 @@ tbody td {
   font-weight: 600;         
   padding: 1px 83px;
 }
-table td:nth-child(1) { 
-  
-  padding-left: 75px;
-}table td:nth-child(2) { 
-  
+table td, table th {
   text-align: center;
-}
-
-table td:nth-child(3) { 
-  
-  text-align: center;
-}
-table td:nth-child(4) { 
-  text-align: center;
-}
-table td:nth-child(5) { 
-  text-align: center;
-}
-table td:nth-child(6) { 
-  text-align: center;
+  padding: 8px;
 }
 
 .bottomcon {
@@ -77,6 +65,7 @@ table td:nth-child(6) {
   top: 26.4vw;
   border-bottom-left-radius: 8px;
    border-bottom-right-radius: 8px;
+   border-top: 2px solid #E7E7E7;
     border-bottom: 2px solid #E7E7E7;
     border-right: 2px solid #E7E7E7;
     border-left: 2px solid #E7E7E7;
@@ -247,16 +236,41 @@ td div:hover {
    font-weight: bold;
 }
 
-.no-results {
-  text-align: center;
-  font-size: 12px;    /* smaller than normal text */
-  color: gray;
-  font-style: italic;
-  padding: 4px;       /* less padding so the row is shorter */
-  text-decoration: none;
-  height: auto;       /* let it shrink naturally */
-  line-height: 1.2;   /* tighter spacing */
+/* stable table layout, no scrollbars, consistent row height */
+.table-container {
+  width: 79vw;
+  border: 2px solid #E7E7E7;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  overflow: visible; /* ensure no scrollbar appears */
 }
+
+.table-container table {
+  border-collapse: collapse;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.table-container thead th,
+.table-container tbody td {
+  height: 48px;          /* consistent height */
+  line-height: 48px;     /* vertically centered */
+  padding: 0 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  text-align: center;
+  vertical-align: middle;
+}
+
+
+/* ensure the "no-results" row uses same sizing */
+tr.no-results td {
+  height: 48px !important;
+  line-height: 48px !important;
+  padding: 0 12px !important;
+}
+
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -320,4 +334,9 @@ td div:hover {
   border-radius: 6px;
   color: #2E3070;               /* optional: text color */
   padding: 5px;                /* optional: for better input spacing */
+}
+.filler-row td {
+  height: 48px;
+  border: 1px solid white;  /* 👈 change border color */
+  background-color: transparent; /* keep background clear */
 }
