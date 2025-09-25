@@ -1,36 +1,29 @@
-from flask import Flask, jsonify, request
-from flask_cors import CORS
+from flask import Blueprint, jsonify, request
 import psycopg2
 import psycopg2.extras
 
-app = Flask(__name__)
-CORS(app)
+student_bp = Blueprint("student_bp", __name__)  # blueprint name
 
 # PostgreSQL config
 db_config = {
     "host": "localhost",
-    "user": "postgres",      # change to your PostgreSQL user
-    "password": "quinlob123",  # ⚠️ change to your actual password
+    "user": "postgres",
+    "password": "quinlob123",
     "dbname": "Informationsystem"
 }
 
-# helper function for connection
 def get_connection():
     return psycopg2.connect(**db_config)
 
-@app.route("/")
-def home():
-    return "Hello, Flask + PostgreSQL!"
-
-# 🔹 GET students with pagination
-@app.route("/students")
-@app.route("/students/<int:page>")
+# GET students with pagination
+@student_bp.route("/students")
+@student_bp.route("/students/<int:page>")
 def get_students(page=1):
     try:
         conn = get_connection()
         cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-        limit = 11
+        limit = 9
         offset = (page - 1) * limit
 
         cursor.execute("""
@@ -40,20 +33,18 @@ def get_students(page=1):
         """, (limit, offset))
 
         students = cursor.fetchall()
-
         cursor.close()
         conn.close()
 
-        # convert rows into list of dicts
         return jsonify([dict(row) for row in students])
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# 🔹 POST student
-@app.route("/students", methods=["POST"])
+# POST student
+@student_bp.route("/students", methods=["POST"])
 def add_student():
     try:
-        data = request.json  # read JSON from React
+        data = request.json
         conn = get_connection()
         cursor = conn.cursor()
 
@@ -72,20 +63,20 @@ def add_student():
 
         cursor.execute(query, values)
         conn.commit()
-
         cursor.close()
         conn.close()
 
         return jsonify({"message": "Student added successfully"}), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    
-@app.route("/students/search")
+
+# Search students
+@student_bp.route("/students/search")
 def search_students():
     query = request.args.get("q", "")
 
     try:
-        conn = psycopg2.connect(**db_config)
+        conn = get_connection()
         cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
         cursor.execute("""
@@ -100,14 +91,9 @@ def search_students():
         """, (f"%{query}%",)*6)
 
         students = cursor.fetchall()
-
         cursor.close()
         conn.close()
+
         return jsonify(students)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-
-
-if __name__ == "__main__":
-    app.run(debug=True)

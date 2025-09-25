@@ -23,8 +23,9 @@
 }
 
 .navbar {
+    background: transparent !important;
   position: absolute;   
-  top: 10vh;              
+  top: 6.3vh !important;;              
   left: 0;              
   width: 100%;          
   border-bottom: 0.1vw solid #cccccc; 
@@ -45,7 +46,7 @@
 .studentbutton{
   position: absolute  ;
   color: #2E3070;
-   top: -10vh;  
+   top: -6.4vh;  
     left :40vw;
     font-size: 26px;
   background-color: transparent;
@@ -86,7 +87,7 @@
 .programbutton{
   position: absolute  ;
   color: #2E3070;
-   top: -10vh;  
+   top: -6.5vh;  
     left :47vw;
     font-size: 26px;
   background-color: transparent;
@@ -124,7 +125,7 @@
 .collegebutton{
   position: absolute  ;
   color: #2E3070;
-   top: -10vh;  
+    top: -6.5vh; 
     left :54vw;
     font-size: 26px;
   background-color: transparent;
@@ -162,14 +163,7 @@
   
 
 
-.navbar {
-  position: absolute;   
-  top: 10vh;              
-  left: 0;              
-  width: 100%;          
-  border-bottom: 0.1vw solid #cccccc; 
-  z-index: 2;           
-}
+
 .underline {
   position: absolute;   
   top: 15vh;              

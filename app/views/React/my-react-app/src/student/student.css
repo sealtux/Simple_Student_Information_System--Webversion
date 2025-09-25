@@ -62,7 +62,7 @@ table td, table th {
   
   background-color: #ffffff;
   position: absolute;
-  top: 26.4vw;
+  top: 25.8vw;
   border-bottom-left-radius: 8px;
    border-bottom-right-radius: 8px;
    border-top: 2px solid #E7E7E7;
@@ -110,7 +110,7 @@ table td, table th {
   padding-left: 40px;
   width: 150px;
   left: 2vw;
-  top: -30.5vw;
+  top: -30vw;
 }
 
 .deletebut{
@@ -126,7 +126,7 @@ table td, table th {
   width: 170px;
   left: 10.5vw;
     outline: none;
-  top: -30.5vw;
+  top: -30vw;
 }
 .informationtext {
   position: absolute;
@@ -170,7 +170,7 @@ td div:hover {
   font-weight: bold;
 }
 
-/*sort button */
+
 .sortbut {
   position: absolute;
   background-color: #ffffff;
@@ -183,7 +183,7 @@ td div:hover {
   padding-left: 35px;
    width: 200px;
   border-radius: 10px;
-  left: 50vw; /* adjust placement */
+  left: 50vw; 
   top: -4vw;
   outline: none;
   cursor: pointer;
@@ -191,7 +191,7 @@ td div:hover {
 
 .sort-popup {
   position: absolute;
-  top: -1vw; /* adjust based on where button is */
+  top: -1vw; 
   left: 50.3vw;
   background: rgb(255, 255, 255);
   border: 3px solid #2E3070;
@@ -222,7 +222,7 @@ td div:hover {
    height: 49px;
    width: 350px;
    border-radius: 10px;
-    left:61vw; /* adjust placement */
+    left:61vw; 
     top: -4vw;
     color: #2E3070;
      font-size: 20px;
@@ -231,18 +231,18 @@ td div:hover {
       font-weight: bold;
 }
 .search::placeholder {
-  color: #5d5f9b;      /* change color */
-  font-size: 20px;     /* change size */
+  color: #5d5f9b;      
+  font-size: 20px;     
    font-weight: bold;
 }
 
-/* stable table layout, no scrollbars, consistent row height */
+
 .table-container {
   width: 79vw;
   border: 2px solid #E7E7E7;
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
-  overflow: visible; /* ensure no scrollbar appears */
+  overflow: visible; /
 }
 
 .table-container table {
@@ -253,8 +253,8 @@ td div:hover {
 
 .table-container thead th,
 .table-container tbody td {
-  height: 48px;          /* consistent height */
-  line-height: 48px;     /* vertically centered */
+  height: 48px;         
+  line-height: 48px;    
   padding: 0 12px;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -264,7 +264,7 @@ td div:hover {
 }
 
 
-/* ensure the "no-results" row uses same sizing */
+
 tr.no-results td {
   height: 48px !important;
   line-height: 48px !important;
@@ -292,51 +292,122 @@ tr.no-results td {
   
   
   box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
-  height: 20vw;
-  width: 30vw;
+  height: 30vw;
+  width: 35vw;
 }
 
+.navbarhead{
+position: absolute;
+background-color: #2E3070;
+height: 10vh;
+width: 37.2vw;
+left: 31.4vw;
+top: 17.2vh;
+border-radius: 6px;
+}
 .addsub{
   position: absolute;
-  left: 58vw;
-  top: 32vw;
+  left: 60vw;
+  top: 36vw;
   height: 6vh;
   width: 7vw;
+  background-color: #2E3070;
+  color: #ffffff;
 }
 .canceladd{
   position: absolute;
-  left: 35vw;
-  top: 32vw;
+  left: 33vw;
+  top: 36vw;
   height: 6vh;
   width: 7vw;
+  background-color: #ffffff;
+  color: #2E3070;
+  border: 3px solid #2E3070 ;
 }
+
 .addid{
-  background-color: #F2F2FF;   /* 🔹 fixed typo */
+  background-color: #F2F2FF;  
   border: 3px solid #2E3070;
   font-weight: bold;
-  width: 20vw;
-  height: 4vh;
-  left: 40vw;
-  position: absolute;          /* 🔹 needed for left to work */
+  width: 13vw;
+  height: 4.5vh;
+  left: 37vw;
+  position: absolute;         
   border-radius: 6px;
-  color: #2E3070;               /* optional: text color */
-  padding: 5px;                /* optional: for better input spacing */
+  color: #2E3070;               
+  padding: 5px;    
+  top:35vh          
 }
 .addfirst{
-  background-color: #F2F2FF;   /* 🔹 fixed typo */
+  background-color: #F2F2FF;   
   border: 3px solid #2E3070;
   font-weight: bold;
-  width: 20vw;
-  height: 4vh;
-  left: 40vw;
-  top: 42.5vh;
-  position: absolute;          /* 🔹 needed for left to work */
+  width: 26vw;
+  height: 4.5vh;
+  left: 37vw;
+  top: 43vh;
+  position: absolute;          
   border-radius: 6px;
-  color: #2E3070;               /* optional: text color */
-  padding: 5px;                /* optional: for better input spacing */
+  color: #2E3070;               
+  padding: 5px;               
+}
+.addlast{
+  background-color: #F2F2FF;   
+  border: 3px solid #2E3070;
+  font-weight: bold;
+  width: 26vw;
+  height: 4.5vh;
+  left: 37vw;
+  top: 51vh;
+  position: absolute;          
+  border-radius: 6px;
+  color: #2E3070;               
+  padding: 5px; 
+}
+.addgen{
+background-color: #F2F2FF;   
+  border: 3px solid #2E3070;
+  font-weight: bold;
+  width: 12vw;
+  height: 4.5vh;
+  left: 51vw;
+  top: 59vh;
+  position: absolute;          
+  border-radius: 6px;
+  color: #2E3070;               
+  padding: 5px;   
+  
+}
+.addyear{
+background-color: #F2F2FF;   
+  border: 3px solid #2E3070;
+  font-weight: bold;
+  width: 12vw;
+  height: 4.5vh;
+  left: 51vw;
+  top: 35vh;
+  position: absolute;          
+  border-radius: 6px;
+  color: #2E3070;               
+  padding: 5px;   
+  
 }
 .filler-row td {
   height: 48px;
-  border: 1px solid white;  /* 👈 change border color */
-  background-color: transparent; /* keep background clear */
+  border: 1px solid white;  
+  background-color: transparent; 
+}
+
+.addprog{
+  background-color: #F2F2FF;  
+  border: 3px solid #2E3070;
+  font-weight: bold;
+  width: 13vw;
+  height: 4.5vh;
+  left: 37vw;
+  position: absolute;         
+  border-radius: 6px;
+  color: #2E3070;               
+  padding: 5px;    
+  top: 59vh 
 }

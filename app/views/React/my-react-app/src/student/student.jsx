@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useRef } from "react";
-import "../assets/student.css";
-import editIcon from "../images/edit.png";
-import addIcon from "../images/add.png";
-import deleteIcon from "../images/delete.png";
-import sortIcon from "../images/sort.png";
-import arrowIcon from "../images/arrowdown.png";
-import searchIcon from "../images/search.png";
+import "./student.css";
+import editIcon from "./images/edit.png";
+import addIcon from "./images/add.png";
+import deleteIcon from "./images/delete.png";
+import sortIcon from "./images/sort.png";
+import arrowIcon from "./images/arrowdown.png";
+import searchIcon from "./images/search.png";
+import addstud from "./images/addstudent.png";
 
 function Student() {
   const [students, setStudents] = useState([]);
@@ -15,6 +16,12 @@ function Student() {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const tableRef = useRef(null);
+  const [currentPage, setCurrentPage] = useState(1);
+const [rowsPerPage] = useState(9); // limit to 5 students per page
+
+const indexOfLastStudent = currentPage * rowsPerPage;
+const indexOfFirstStudent = indexOfLastStudent - rowsPerPage;
+const currentStudents = students.slice(indexOfFirstStudent, indexOfLastStudent);
 
   // 🔹 NEW: add form states
   const [showAddForm, setShowAddForm] = useState(false);
@@ -61,27 +68,25 @@ function Student() {
     setShowSortMenu(false);
   };
 
- const handleSearch = async (e) => {
-  const value = e.target.value;
+ const handleSearch = (e) => {
+  const value = e.target.value.toLowerCase();
   setSearchTerm(value);
 
   if (value === "") {
-    // reload all students when search box is cleared
     setStudents(originalStudents);
   } else {
-    try {
-      const res = await fetch(`http://127.0.0.1:5000/students/search?q=${value}`);
-      const data = await res.json();
-      setStudents(data);
-    } catch (err) {
-      console.error("Error fetching search results:", err);
-    }
+    const filtered = originalStudents.filter((student) =>
+      Object.values(student).some((field) =>
+        String(field).toLowerCase().includes(value)
+      )
+    );
+    setStudents(filtered);
   }
 };
 
 
-  // 🔹 NEW: handle add student
- // 🔹 handle add student (now POSTs to backend)
+
+
 const handleAddStudent = (e) => {
   e.preventDefault();
 
@@ -99,7 +104,7 @@ const handleAddStudent = (e) => {
         return;
       }
 
-      // Refresh table by fetching from backend again
+   
       fetch("http://127.0.0.1:5000/students")
         .then((response) => response.json())
         .then((updated) => {
@@ -159,8 +164,8 @@ const handleAddStudent = (e) => {
                 </tr>
               </thead>
              <tbody>
-  {students.length > 0 ? (
-    students.map((student, rowIndex) => (
+  {currentStudents.length > 0 ? (
+    currentStudents.map((student, rowIndex) => (
       <tr key={student.IdNumber || rowIndex}>
         <td>{student.IdNumber}</td>
         <td>{student.FirstName}</td>
@@ -307,23 +312,44 @@ const handleAddStudent = (e) => {
           {showAddForm && (
             <div className="modal-overlay">
               <div className="modal-content">
-                <h2 style={{color: "#2E3070", fontWeight: "bold"}}>Add Student</h2>
+                <div className="navbarhead"> <img
+                src={addstud}
+                alt="addstudent"
+                className="addicon"
+                style={{
+                  width: "90px",
+                  height: "90px",
+                  position: "absolute",
+                  left: "2.8vw",
+                  top: "0vw",
+                  zIndex: 3,
+                }}
+              />  <h2  style={{ color: "#ffffffff", fontWeight: "bold", position: "absolute", left: "8vw",top:"1vh" }}>Add Student</h2></div>
+              
                 <form onSubmit={handleAddStudent}>
-                  <label style={{ color: "#2E3070", fontWeight: "bold" }}>
-                    ID Number:
-                    <input 
-                    placeholder="2023-3984"
-                      className="addid"
-                      type="text"
-                      value={newStudent.IdNumber}
-                      onChange={(e) =>
-                        setNewStudent({ ...newStudent, IdNumber: e.target.value })
-                      }
-                    />
-                  </label>
+                  
+                 <label 
+  htmlFor="idNumber" 
+ style={{ color: "#2E3070", fontWeight: "bold", position: "absolute", left: "37vw",top:"32.5vh" }}
+>
+  ID Number
+</label>
+                    
+<input
+  id="idNumber"
+  placeholder="2023-3984"
+  className="addid"
+  type="text"
+  value={newStudent.IdNumber}
+  onChange={(e) =>
+    setNewStudent({ ...newStudent, IdNumber: e.target.value })
+  }
+/>
+                  
                   <br />
-                  <label style={{ color: "#2E3070", fontWeight: "bold" }}>
+                  <label  style={{ color: "#2E3070", fontWeight: "bold", position: "absolute", left: "37vw",top:"40.5vh" }}>
                     First Name:
+                     </label>
                     <input
                     placeholder="eg.juan"
                      className="addfirst"
@@ -336,14 +362,17 @@ const handleAddStudent = (e) => {
                         })
                       }
                     />
-                  </label>
+                  
                   <br />
-                  <label style={{ color: "#2E3070", fontWeight: "bold" }}>
+                  <label style={{ color: "#2E3070", fontWeight: "bold", position: "absolute", left: "37vw",top:"48.5vh" }}>
                     Last Name:
-                    <input
+                    
+                      </label>
+                      <input
                     placeholder="Quinlob"
-                     style={{ color: "#2E3070", fontWeight: "bold" ,width: "20vw",height : "3vh"}}
+                     
                       type="text"
+                      className="addlast"
                       value={newStudent.LastName}
                       onChange={(e) =>
                         setNewStudent({
@@ -352,45 +381,59 @@ const handleAddStudent = (e) => {
                         })
                       }
                     />
-                  </label>
+                 
                   <br />
                   
-                    <label style={{ color: "#2E3070", fontWeight: "bold" }}>
-                    Year Level:
-                    <input
-                    placeholder="3rd Year"
-                     style={{ color: "#2E3070", fontWeight: "bold" ,width: "20vw",height : "3vh"}}
-                      type="text"
-                      value={newStudent.YearLevel}
-                      onChange={(e) =>
-                        setNewStudent({
-                          ...newStudent,
-                          YearLevel: e.target.value,
-                        })
-                      }
-                    />
-                  </label>
-                  <br />
+                    <label  style={{ color: "#2E3070", fontWeight: "bold", position: "absolute", left: "51vw",top:"32.5vh"}}>
+  Year Level:
+  </label>
+  <select
+  className="addyear"
+    value={newStudent.YearLevel}
+    onChange={(e) =>
+      setNewStudent({
+        ...newStudent,
+        YearLevel: e.target.value,
+      })
+    }
+ 
+  >
+    <option value="">Year</option>
+    <option value="1st Year">1st Year</option>
+    <option value="2nd Year">2nd Year</option>
+    <option value="3rd Year">3rd Year</option>
+    <option value="4th Year">4th Year</option>
+  </select>
 
-                   <label style={{ color: "#2E3070", fontWeight: "bold" }}>
-                    Gender:
-                    <input
-                     style={{ color: "#2E3070", fontWeight: "bold" ,width: "20vw",height : "3vh"}}
-                      type="text"
-                      value={newStudent.Gender}
-                      onChange={(e) =>
-                        setNewStudent({
-                          ...newStudent,
-                          Gender: e.target.value,
-                        })
-                      }
-                    />
-                  </label>
-                  <br />
+<br />
 
-                  <label style={{ color: "#2E3070", fontWeight: "bold" }}>
+<label  style={{ color: "#2E3070", fontWeight: "bold", position: "absolute", left: "51vw",top:"56.5vh"}}>
+  Gender:
+  </label>
+  <select
+    className="addgen"
+    value={newStudent.Gender}
+    onChange={(e) =>
+      setNewStudent({
+        ...newStudent,
+        Gender: e.target.value,
+      })
+    }
+  
+  >
+    <option value="">Gender</option>
+    <option value="Male">Male</option>
+    <option value="Female">Female</option>
+  </select>
+
+<br />
+
+
+                  <label style={{ color: "#2E3070", fontWeight: "bold", position: "absolute", left: "37vw",top:"56.5vh"}}>
                     Program Code:
+                    </label>
                     <select
+                    className="addprog"
                       value={newStudent.ProgramCode}
                       onChange={(e) =>
                         setNewStudent({
@@ -398,19 +441,14 @@ const handleAddStudent = (e) => {
                           ProgramCode: e.target.value,
                         })
                       }
-                      style={{
-                        marginLeft: "10px",
-                        padding: "5px",
-                        borderRadius: "5px",
-                        border: "1px solid #ccc",
-                      }}
+                     
                     >
-                      <option value="">--Select a Program Code--</option>
+                      <option value="">ProgramCode</option>
                       <option value="Male">Male</option>
                       <option value="Female">Female</option>
-                      <option value="Other">Other</option>
+                     
                     </select>
-                  </label>
+                 
                   <br />
 
                   
