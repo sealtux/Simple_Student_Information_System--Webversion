@@ -2,7 +2,8 @@ from flask import Blueprint, jsonify, request
 import psycopg2
 import psycopg2.extras
 
-student_bp = Blueprint("student_bp", __name__)  # blueprint name
+student_bp = Blueprint("student_bp", __name__, url_prefix="/students")
+
 
 # PostgreSQL config
 db_config = {
@@ -16,8 +17,8 @@ def get_connection():
     return psycopg2.connect(**db_config)
 
 # GET students with pagination
-@student_bp.route("/students")
-@student_bp.route("/students/<int:page>")
+@student_bp.route("/")
+@student_bp.route("/<int:page>")
 def get_students(page=1):
     try:
         conn = get_connection()
@@ -41,7 +42,7 @@ def get_students(page=1):
         return jsonify({"error": str(e)}), 500
 
 # POST student
-@student_bp.route("/students", methods=["POST"])
+@student_bp.route("/", methods=["POST"])
 def add_student():
     try:
         data = request.json
@@ -71,7 +72,7 @@ def add_student():
         return jsonify({"error": str(e)}), 500
 
 # Search students
-@student_bp.route("/students/search")
+@student_bp.route("/search")
 def search_students():
     query = request.args.get("q", "")
 
@@ -95,5 +96,25 @@ def search_students():
         conn.close()
 
         return jsonify(students)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# DELETE student
+@student_bp.route("/<id>", methods=["DELETE"])
+def delete_student(id):
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('DELETE FROM student WHERE "IdNumber" = %s RETURNING "IdNumber"', (id,))
+        deleted = cursor.fetchone()
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        if not deleted:
+            return jsonify({"error": "Student not found"}), 404
+
+        return jsonify({"message": f"Student {id} deleted successfully"})
     except Exception as e:
         return jsonify({"error": str(e)}), 500

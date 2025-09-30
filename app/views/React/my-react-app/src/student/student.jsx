@@ -19,6 +19,9 @@ function Student() {
   const [currentPage, setCurrentPage] = useState(1);
 const [rowsPerPage] = useState(9); // limit to 5 students per page
 
+const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+const [deleteMessage, setDeleteMessage] = useState(""); 
+
 const indexOfLastStudent = currentPage * rowsPerPage;
 const indexOfFirstStudent = indexOfLastStudent - rowsPerPage;
 const currentStudents = students.slice(indexOfFirstStudent, indexOfLastStudent);
@@ -45,17 +48,7 @@ const currentStudents = students.slice(indexOfFirstStudent, indexOfLastStudent);
       .catch((error) => console.error("Error fetching students:", error));
   }, []);
 
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (tableRef.current && !tableRef.current.contains(event.target)) {
-        setSelectedRow(null);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
+  
 
   const handleSort = (key) => {
     if (key === "default") {
@@ -68,23 +61,73 @@ const currentStudents = students.slice(indexOfFirstStudent, indexOfLastStudent);
     setShowSortMenu(false);
   };
 
- const handleSearch = (e) => {
-  const value = e.target.value.toLowerCase();
+const handleSearch = (e) => {
+  const value = e.target.value;
   setSearchTerm(value);
 
-  if (value === "") {
-    setStudents(originalStudents);
+  if (value.trim() === "") {
+    // fetch all students again (default view)
+    fetch("http://127.0.0.1:5000/students")
+      .then((res) => res.json())
+      .then((data) => {
+        setStudents(data);
+        setOriginalStudents(data);
+      })
+      .catch((err) => console.error("Error fetching students:", err));
   } else {
-    const filtered = originalStudents.filter((student) =>
-      Object.values(student).some((field) =>
-        String(field).toLowerCase().includes(value)
-      )
-    );
-    setStudents(filtered);
+    // call the backend search endpoint
+    fetch(`http://127.0.0.1:5000/students/search?q=${encodeURIComponent(value)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setStudents(data);
+      })
+      .catch((err) => console.error("Error searching students:", err));
   }
 };
 
 
+
+// --- inside your component ---
+const handleDelete = () => {
+  if (!selectedRow) {
+    setDeleteMessage("⚠️ Please select a student to delete.");
+    setShowDeleteConfirm(true);
+    return;
+  }
+
+  setDeleteMessage(
+    `Are you sure you want to delete student ${selectedRow.IdNumber}?`
+  );
+  setShowDeleteConfirm(true);
+};
+
+const confirmDelete = () => {
+  fetch(`http://127.0.0.1:5000/students/${selectedRow.IdNumber}`, {
+    method: "DELETE",
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.error) {
+        setDeleteMessage("❌ " + data.error);
+        return;
+      }
+
+      // Success: update table and close modal
+      setStudents((prev) =>
+        prev.filter((s) => s.IdNumber !== selectedRow.IdNumber)
+      );
+      setOriginalStudents((prev) =>
+        prev.filter((s) => s.IdNumber !== selectedRow.IdNumber)
+      );
+      setSelectedRow(null);
+      setShowDeleteConfirm(false); // close modal
+      alert(data.message || "Student deleted successfully!");
+    })
+    .catch((err) => {
+      setDeleteMessage("🔥 Failed to delete student.");
+      console.error("Error deleting student:", err);
+    });
+};
 
 
 const handleAddStudent = (e) => {
@@ -128,31 +171,14 @@ const handleAddStudent = (e) => {
 
 
   return (
-    <div className="containers">
+      <div className="containers">
       {loading ? (
         <p style={{ color: "blue" }}>Loading...</p>
       ) : (
         <>
           {/* table */}
-          <div
-            className="table-container"
-            style={{
-              
-              width: "79vw",
-              border: "2px solid #E7E7E7",
-              borderTopLeftRadius: "10px",
-              borderTopRightRadius: "10px",
-              
-            }}
-          >
-            <table
-              ref={tableRef}
-              style={{
-                color: "#2E3070",
-                borderSpacing: "0",
-                width: "100%",
-              }}
-            >
+          <div className="table-container" style={{ width: "79vw", border: "2px solid #E7E7E7", borderTopLeftRadius: "10px", borderTopRightRadius: "10px" }}>
+            <table ref={tableRef} style={{ color: "#2E3070", borderSpacing: "0", width: "100%" }}>
               <thead>
                 <tr>
                   <th>ID Number</th>
@@ -163,32 +189,30 @@ const handleAddStudent = (e) => {
                   <th>Program Code</th>
                 </tr>
               </thead>
-             <tbody>
-  {currentStudents.length > 0 ? (
-    currentStudents.map((student, rowIndex) => (
-      <tr key={student.IdNumber || rowIndex}>
-        <td>{student.IdNumber}</td>
-        <td>{student.FirstName}</td>
-        <td>{student.LastName}</td>
-        <td>{student.YearLevel}</td>
-        <td>{student.Gender}</td>
-        <td>{student.ProgramCode}</td>
-      </tr>
-    ))
-  ) : (
-    <tr className="no-results">
-      <td colSpan="6">No results found</td>
-    </tr>
-  )}
+              <tbody>
+                {currentStudents.length > 0 ? (
+                  currentStudents.map((student, rowIndex) => (
+                    <tr
+  key={student.IdNumber || rowIndex}
+  onClick={() => setSelectedRow(student)}
+  className={selectedRow?.IdNumber === student.IdNumber ? "selected-row" : ""}
+  style={{ cursor: "pointer" }}
+>
 
-  {/* filler rows */}
-  {Array.from({ length: Math.max(0, 3 - students.length) }).map((_, i) => (
-    <tr key={`filler-${i}`} className="filler-row">
-      <td colSpan="6">&nbsp;</td>
-    </tr>
-  ))}
-</tbody>
-
+                      <td>{student.IdNumber}</td>
+                      <td>{student.FirstName}</td>
+                      <td>{student.LastName}</td>
+                      <td>{student.YearLevel}</td>
+                      <td>{student.Gender}</td>
+                      <td>{student.ProgramCode}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr className="no-results">
+                    <td colSpan="6">No results found</td>
+                  </tr>
+                )}
+              </tbody>
             </table>
           </div>
 
@@ -225,20 +249,59 @@ const handleAddStudent = (e) => {
               Add
             </button>
 
-            <button className="deletebut">
-              <img
-                src={deleteIcon}
-                alt="Delete"
-                className="icon"
-                style={{
-                  width: "30px",
-                  height: "30px",
-                  position: "absolute",
-                  left: "30px",
-                }}
-              />
-              Delete
-            </button>
+<div className="action-buttons">
+  <button
+    className="deletebut"
+    onClick={() => {
+      if (!selectedRow) {
+        alert("⚠️ Please select a student first!");
+        return;
+      }
+      // Show confirmation modal or just alert for testing
+      const confirmDelete = window.confirm(
+        `Are you sure you want to delete student ${selectedRow.IdNumber}?`
+      );
+      if (confirmDelete) {
+        fetch(`http://127.0.0.1:5000/students/${selectedRow.IdNumber}`, {
+          method: "DELETE",
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.error) {
+              alert("❌ " + data.error);
+              return;
+            }
+            alert("✅ " + data.message);
+            // remove student from state
+            setCurrentStudents((prev) =>
+              prev.filter((s) => s.IdNumber !== selectedRow.IdNumber)
+            );
+            setSelectedRow(null);
+          })
+          .catch((err) => {
+            console.error("Error deleting student:", err);
+            alert("🔥 Failed to delete student.");
+          });
+      }
+    }}
+    disabled={!selectedRow} // disabled until a row is selected
+  >
+    <img
+      src={deleteIcon}
+      alt="Delete"
+      className="icon"
+      style={{
+        width: "30px",
+        height: "30px",
+        position: "absolute",
+        left: "30px",
+      }}
+    />
+    Delete
+  </button>
+</div>
+
+
           </div>
 
           {/* sort button and popup */}
@@ -460,6 +523,29 @@ const handleAddStudent = (e) => {
               </div>
             </div>
           )}
+
+        {/* 🔹 Delete Confirmation Modal */}
+
+   {/* 🔹 Delete Confirmation Modal */}
+          {showDeleteConfirm && (
+            <div className="confirm-modal-overlay">
+              <div className="confirm-modal-content">
+                <h3 style={{ color: "#2E3070" }}>Delete Student</h3>
+                <p>{deleteMessage}</p>
+                {deleteMessage.startsWith("Are you sure") ? (
+                  <div className="confirm-modal-buttons">
+                    <button onClick={confirmDelete} className="yes-btn">Yes</button>
+                    <button onClick={() => setShowDeleteConfirm(false)} className="no-btn">No</button>
+                  </div>
+                ) : (
+                  <div className="confirm-modal-buttons">
+                    <button onClick={() => setShowDeleteConfirm(false)} className="yes-btn">OK</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
 
           {/* footer bar */}
           <div className="bottombar">

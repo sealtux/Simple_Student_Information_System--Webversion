@@ -170,6 +170,9 @@ td div:hover {
   font-weight: bold;
 }
 
+.selected-row {
+  background-color: #e2e0e0; /* light blue */
+}
 
 .sortbut {
   position: absolute;
@@ -411,3 +414,115 @@ background-color: #F2F2FF;
   padding: 5px;    
   top: 59vh 
 }
+/* ----------------------- EXISTING ADD STUDENT MODAL ----------------------- */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.modal-content {
+  background: #ffffff;
+  border: 3px solid #2E3070;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+  height: 30vw;
+  width: 35vw;
+}
+
+/* ----------------------- DELETE CONFIRMATION MODAL ----------------------- */
+/* ----------------------- DELETE CONFIRMATION MODAL ----------------------- */
+.confirm-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5); /* dark background */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000; /* higher than add student modal */
+}
+
+.confirm-modal-content {
+  background: #fff;
+  padding: 20px 30px;
+  border-radius: 10px;
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  border: 3px solid #2E3070;
+  box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+}
+
+.confirm-modal-buttons {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+.confirm-modal-buttons button {
+  padding: 8px 16px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  border-radius: 6px;
+}
+
+/* ✅ Red "Yes" button */
+.confirm-modal-buttons .yes-btn {
+  background-color: #d9534f;
+  color: #fff;
+}
+.confirm-modal-buttons .yes-btn:hover {
+  background-color: #c9302c;
+}
+
+/* ✅ Outlined blue "No" button */
+.confirm-modal-buttons .no-btn {
+  background-color: #ffffff;
+  color: #2E3070;
+  border: 3px solid #2E3070;
+}
+.confirm-modal-buttons .no-btn:hover {
+  background-color: #f0f0f0;
+}
+
+/* ----------------------- DELETE BUTTON STYLE ----------------------- */
+.deletebut {
+  position: absolute;
+  background-color: #d9534f;
+  color: #ffffff;
+  border: 3px solid #d9534f;
+  font-size: 20px;
+  height: 49px;
+  font-weight: bold;
+  padding-top: 5px;
+  padding-left: 40px;
+  width: 170px;
+  left: 10.5vw;
+  outline: none;
+  top: -30vw;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.deletebut:hover {
+  background-color: #c9302c;
+  border-color: #c9302c;
+  transform: scale(1.03);
+}
+
+
+/* Yes / No button styles can reuse your .addsub and .canceladd */
