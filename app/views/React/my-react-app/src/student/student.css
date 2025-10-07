@@ -501,9 +501,9 @@ background-color: #F2F2FF;
 /* ----------------------- DELETE BUTTON STYLE ----------------------- */
 .deletebut {
   position: absolute;
-  background-color: #d9534f;
-  color: #ffffff;
-  border: 3px solid #d9534f;
+  background-color: #ffffff;
+  color: #2E3070;
+  border: 3px solid #2E3070;
   font-size: 20px;
   height: 49px;
   font-weight: bold;
@@ -519,8 +519,12 @@ background-color: #F2F2FF;
 }
 
 .deletebut:hover {
-  background-color: #c9302c;
-  border-color: #c9302c;
+  
+  transform: scale(1.03);
+}
+
+.addbut:hover {
+  
   transform: scale(1.03);
 }
 

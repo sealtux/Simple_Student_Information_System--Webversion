@@ -13,7 +13,7 @@ function Student() {
   const [originalStudents, setOriginalStudents] = useState([]);
   const [selectedRow, setSelectedRow] = useState(null);
   const [showSortMenu, setShowSortMenu] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
+const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const tableRef = useRef(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -24,7 +24,10 @@ const [deleteMessage, setDeleteMessage] = useState("");
 
 const indexOfLastStudent = currentPage * rowsPerPage;
 const indexOfFirstStudent = indexOfLastStudent - rowsPerPage;
+
 const currentStudents = students.slice(indexOfFirstStudent, indexOfLastStudent);
+
+
 
   // 🔹 NEW: add form states
   const [showAddForm, setShowAddForm] = useState(false);
@@ -37,6 +40,16 @@ const currentStudents = students.slice(indexOfFirstStudent, indexOfLastStudent);
     ProgramCode: "",
   });
 
+    const setUniqueStudents = (data) => {
+    const unique = data.filter(
+      (student, index, self) =>
+        index === self.findIndex((s) => s.IdNumber === student.IdNumber)
+    );
+    setStudents(unique);
+    setOriginalStudents(unique);
+  };
+
+  
   useEffect(() => {
     fetch("http://127.0.0.1:5000/students")
       .then((response) => response.json())
@@ -51,39 +64,46 @@ const currentStudents = students.slice(indexOfFirstStudent, indexOfLastStudent);
   
 
   const handleSort = (key) => {
-    if (key === "default") {
-      setStudents(originalStudents);
-      setShowSortMenu(false);
-      return;
-    }
-    const sorted = [...students].sort((a, b) => (a[key] > b[key] ? 1 : -1));
-    setStudents(sorted);
-    setShowSortMenu(false);
-  };
-
-const handleSearch = (e) => {
-  const value = e.target.value;
-  setSearchTerm(value);
-
-  if (value.trim() === "") {
-    // fetch all students again (default view)
+     // If user wants default order, fetch all students
+  if (key === "default") {
     fetch("http://127.0.0.1:5000/students")
       .then((res) => res.json())
-      .then((data) => {
-        setStudents(data);
-        setOriginalStudents(data);
-      })
+      .then((data) => setUniqueStudents(data))
       .catch((err) => console.error("Error fetching students:", err));
-  } else {
-    // call the backend search endpoint
-    fetch(`http://127.0.0.1:5000/students/search?q=${encodeURIComponent(value)}`)
+    setShowSortMenu(false);
+    return;
+  }
+
+  // Fetch sorted students from backend
+  fetch(`http://127.0.0.1:5000/students/sort?key=${encodeURIComponent(key)}`)
+    .then((res) => res.json())
+    .then((data) => setUniqueStudents(data))
+    .catch((err) => console.error("Error fetching sorted students:", err));
+
+  setShowSortMenu(false);
+};
+  
+const handleSearchSubmit = (e) => {
+  e.preventDefault();
+  if (searchTerm.trim() === "") {
+    fetch("http://127.0.0.1:5000/students")
       .then((res) => res.json())
-      .then((data) => {
-        setStudents(data);
-      })
-      .catch((err) => console.error("Error searching students:", err));
+      .then((data) => setUniqueStudents(data))
+      .catch((err) => console.error(err));
+  } else {
+    fetch(`http://127.0.0.1:5000/students/search?q=${encodeURIComponent(searchTerm)}`)
+      .then((res) => res.json())
+      .then((data) => setUniqueStudents(data))
+      .catch((err) => console.error(err));
   }
 };
+
+
+
+
+
+
+
 
 
 
@@ -112,16 +132,20 @@ const confirmDelete = () => {
         return;
       }
 
-      // Success: update table and close modal
-      setStudents((prev) =>
-        prev.filter((s) => s.IdNumber !== selectedRow.IdNumber)
-      );
-      setOriginalStudents((prev) =>
-        prev.filter((s) => s.IdNumber !== selectedRow.IdNumber)
-      );
-      setSelectedRow(null);
-      setShowDeleteConfirm(false); // close modal
-      alert(data.message || "Student deleted successfully!");
+      // ✅ Success: refetch students from backend to refresh table
+      fetch("http://127.0.0.1:5000/students")
+        .then((res) => res.json())
+        .then((updated) => {
+          setStudents(updated);
+          setOriginalStudents(updated);
+          setSelectedRow(null);
+          setShowDeleteConfirm(false); // close modal
+          alert(data.message || "Student deleted successfully!");
+        })
+        .catch((err) => {
+          console.error("Error refreshing students:", err);
+          setDeleteMessage("🔥 Failed to refresh table after delete.");
+        });
     })
     .catch((err) => {
       setDeleteMessage("🔥 Failed to delete student.");
@@ -130,43 +154,54 @@ const confirmDelete = () => {
 };
 
 
+
 const handleAddStudent = (e) => {
   e.preventDefault();
 
-  fetch("http://127.0.0.1:5000/students", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(newStudent),
-  })
-    .then((res) => res.json())
-    .then((data) => {
-      console.log("Server response:", data);
+  console.log("Submitting new student:", newStudent);
 
-      if (data.error) {
-        alert("Error: " + data.error);
-        return;
-      }
+ fetch("http://127.0.0.1:5000/students/", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(newStudent),
+})
+  .then(async (res) => {
+    let data;
+    try {
+      data = await res.json(); // try parsing JSON
+    } catch {
+      throw new Error("Server did not return valid JSON");
+    }
 
-   
-      fetch("http://127.0.0.1:5000/students")
-        .then((response) => response.json())
-        .then((updated) => {
-          setStudents(updated);
-          setOriginalStudents(updated);
+    if (!res.ok) {
+      alert("Error: " + (data?.error || "Unknown error"));
+      return;
+    }
+
+    alert(data.message || "Student added!");
+
+    // ✅ Refresh table
+    return fetch("http://127.0.0.1:5000/students")
+      .then((res) => res.json())
+      .then((updated) => {
+        setStudents(updated);
+        setOriginalStudents(updated);
+        setNewStudent({
+          IdNumber: "",
+          FirstName: "",
+          LastName: "",
+          YearLevel: "",
+          Gender: "",
+          ProgramCode: "",
         });
-
-      // reset and close modal
-      setNewStudent({
-        IdNumber: "",
-        FirstName: "",
-        LastName: "",
-        YearLevel: "",
-        Gender: "",
-        ProgramCode: "",
+        setShowAddForm(false);
       });
-      setShowAddForm(false);
-    })
-    .catch((err) => console.error("Error adding student:", err));
+  })
+  .catch((err) => {
+    console.error("Error adding student:", err);
+    alert("Something went wrong: " + err.message);
+  });
+
 };
 
 
@@ -209,14 +244,23 @@ const handleAddStudent = (e) => {
                   ))
                 ) : (
                   <tr className="no-results">
-                    <td colSpan="6">No results found</td>
+                    
                   </tr>
+
                 )}
+                
+
               </tbody>
             </table>
           </div>
+          <div style={{ margin: "10px" }}>
+            <button onClick={() => handlePageChange(currentPage - 1)}>Prev</button>
+            <span style={{ margin: "0 100px" }}>Page {currentPage}</span>
+            <button onClick={() => handlePageChange(currentPage + 1)}>Next</button>
+          </div>
 
           {/* bottom buttons */}
+
           <div className="bottomcon">
             <button className="editbut">
               <img
@@ -252,38 +296,7 @@ const handleAddStudent = (e) => {
 <div className="action-buttons">
   <button
     className="deletebut"
-    onClick={() => {
-      if (!selectedRow) {
-        alert("⚠️ Please select a student first!");
-        return;
-      }
-      // Show confirmation modal or just alert for testing
-      const confirmDelete = window.confirm(
-        `Are you sure you want to delete student ${selectedRow.IdNumber}?`
-      );
-      if (confirmDelete) {
-        fetch(`http://127.0.0.1:5000/students/${selectedRow.IdNumber}`, {
-          method: "DELETE",
-        })
-          .then((res) => res.json())
-          .then((data) => {
-            if (data.error) {
-              alert("❌ " + data.error);
-              return;
-            }
-            alert("✅ " + data.message);
-            // remove student from state
-            setCurrentStudents((prev) =>
-              prev.filter((s) => s.IdNumber !== selectedRow.IdNumber)
-            );
-            setSelectedRow(null);
-          })
-          .catch((err) => {
-            console.error("Error deleting student:", err);
-            alert("🔥 Failed to delete student.");
-          });
-      }
-    }}
+    onClick={handleDelete} // just open the modal
     disabled={!selectedRow} // disabled until a row is selected
   >
     <img
@@ -300,6 +313,7 @@ const handleAddStudent = (e) => {
     Delete
   </button>
 </div>
+
 
 
           </div>
@@ -334,27 +348,30 @@ const handleAddStudent = (e) => {
             </button>
 
             <div className="search-wrapper">
-              <img
-                src={searchIcon}
-                alt="search"
-                className="searchIcon"
-                style={{
-                  width: "35px",
-                  height: "35px",
-                  position: "absolute",
-                  left: "77vw",
-                  top: "-3.6vw",
-                  zIndex: 3,
-                }}
-              />
-              <input
-                type="text"
-                className="search"
-                placeholder="Search"
-                value={searchTerm}
-                onChange={handleSearch}
-              />
-            </div>
+  <form onSubmit={handleSearchSubmit}>
+    <img
+      src={searchIcon}
+      alt="search"
+      className="searchIcon"
+      style={{
+        width: "35px",
+        height: "35px",
+        position: "absolute",
+        left: "77vw",
+        top: "-3.6vw",
+        zIndex: 3,
+      }}
+    />
+    <input
+      type="text"
+      className="search"
+      placeholder="Search"
+      value={searchTerm}
+      onChange={(e) => setSearchTerm(e.target.value)}
+    />
+    <button type="submit" style={{ display: "none" }}>Search</button>
+  </form>
+</div>
 
             {showSortMenu && (
               <div className="sort-popup">
@@ -507,18 +524,37 @@ const handleAddStudent = (e) => {
                      
                     >
                       <option value="">ProgramCode</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
+                      <option value="BSCS">BSCS</option>
+<option value="BSIT">BSIT</option>
+<option value="BSECE">BSECE</option>
+<option value="BSBA">BSBA</option>
+
                      
                     </select>
                  
                   <br />
 
                   
-                  <button type="submit" class = "addsub">Save</button>
-                  <button type="button" onClick={() => setShowAddForm(false)} class = "canceladd">
-                    Cancel
-                  </button>
+                  <button type="submit" className = "addsub"  onClick={handleAddStudent}>Save</button>
+
+                 <button
+  type="button"
+  onClick={() => {
+    setShowAddForm(false); // close modal
+    setNewStudent({        // reset form fields
+      IdNumber: "",
+      FirstName: "",
+      LastName: "",
+      YearLevel: "",
+      Gender: "",
+      ProgramCode: "",
+    });
+  }}
+  className="canceladd"
+>
+  Cancel
+</button>
+
                 </form>
               </div>
             </div>
@@ -558,5 +594,6 @@ const handleAddStudent = (e) => {
     </div>
   );
 }
+
 
 export default Student;
