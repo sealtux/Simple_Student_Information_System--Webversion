@@ -27,6 +27,16 @@ const indexOfFirstStudent = indexOfLastStudent - rowsPerPage;
 
 const currentStudents = students.slice(indexOfFirstStudent, indexOfLastStudent);
 
+// 🔹 Edit feature states
+const [showEditForm, setShowEditForm] = useState(false);
+const [editStudent, setEditStudent] = useState({
+  IdNumber: "",
+  FirstName: "",
+  LastName: "",
+  YearLevel: "",
+  Gender: "",
+  ProgramCode: "",
+});
 
 
   // 🔹 NEW: add form states
@@ -153,56 +163,120 @@ const confirmDelete = () => {
     });
 };
 
+const [originalIdNumber, setOriginalIdNumber] = useState("");
 
+const handleEdit = () => {
+  if (!selectedRow) return;
 
-const handleAddStudent = (e) => {
+  setOriginalIdNumber(selectedRow.IdNumber); // save original ID
+  setEditStudent({ ...selectedRow });
+  setShowEditForm(true);
+};
+
+const handleEditSave = (e) => {
   e.preventDefault();
 
-  console.log("Submitting new student:", newStudent);
-
- fetch("http://127.0.0.1:5000/students/", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify(newStudent),
-})
-  .then(async (res) => {
-    let data;
-    try {
-      data = await res.json(); // try parsing JSON
-    } catch {
-      throw new Error("Server did not return valid JSON");
-    }
-
-    if (!res.ok) {
-      alert("Error: " + (data?.error || "Unknown error"));
-      return;
-    }
-
-    alert(data.message || "Student added!");
-
-    // ✅ Refresh table
-    return fetch("http://127.0.0.1:5000/students")
-      .then((res) => res.json())
-      .then((updated) => {
-        setStudents(updated);
-        setOriginalStudents(updated);
-        setNewStudent({
-          IdNumber: "",
-          FirstName: "",
-          LastName: "",
-          YearLevel: "",
-          Gender: "",
-          ProgramCode: "",
-        });
-        setShowAddForm(false);
-      });
+  fetch(`http://127.0.0.1:5000/students/${originalIdNumber}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(editStudent), // includes new IdNumber
   })
-  .catch((err) => {
-    console.error("Error adding student:", err);
-    alert("Something went wrong: " + err.message);
-  });
-
+  .then(async (res) => {
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error || "Update failed");
+    alert(data.message || "Student updated successfully!");
+    const updated = await fetch("http://127.0.0.1:5000/students").then(r => r.json());
+    setStudents(updated);
+    setOriginalStudents(updated);
+    setShowEditForm(false);
+    setSelectedRow(null);
+  })
+  .catch((err) => alert(err.message));
 };
+
+const validateStudent = (student, existingStudents) => {
+  const idPattern = /^\d{4}-\d{4}$/; // Format 2020-0001 etc.
+
+  // 1. Blank fields
+  for (const [key, value] of Object.entries(student)) {
+    if (!value.trim()) {
+      alert(`${key} is required`);
+      return false;
+    }
+  }
+
+  // 2. ID format check
+  if (!idPattern.test(student.IdNumber)) {
+    alert("ID Number must be in format YYYY-NNNN (e.g., 2020-0001)");
+    return false;
+  }
+
+  // 3. Year check
+  const year = parseInt(student.IdNumber.split("-")[0], 10);
+  if (year < 2020) {
+    alert("Year must be 2020 or later");
+    return false;
+  }
+
+  // 4. Forbidden IDs
+  if (student.IdNumber === "0000-0000" || student.IdNumber === "2023-0000") {
+    alert("Invalid ID Number");
+    return false;
+  }
+
+  // 5. Duplicate check for first and last name
+  const duplicate = existingStudents.find(
+    (s) =>
+      s.FirstName.toLowerCase() === student.FirstName.toLowerCase() &&
+      s.LastName.toLowerCase() === student.LastName.toLowerCase()
+  );
+
+  if (duplicate) {
+    alert("A student with the same First and Last name already exists.");
+    return false;
+  }
+
+  return true;
+};
+const handleAddStudent = async (e) => {
+  e.preventDefault();
+
+  // Run validation before sending request
+  if (!validateStudent(newStudent, students)) return;
+
+  try {
+    const response = await fetch("http://127.0.0.1:5000/students/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newStudent),
+    });
+
+    const data = await response.json();
+    if (response.ok) {
+      alert("✅ Student added successfully!");
+      setShowAddForm(false);
+
+      // reset form
+      setNewStudent({
+        IdNumber: "",
+        FirstName: "",
+        LastName: "",
+        YearLevel: "",
+        Gender: "",
+        ProgramCode: "",
+      });
+
+      // refresh table or update state directly
+      setStudents((prev) => [...prev, newStudent]);
+    } else {
+      alert(`❌ Error: ${data.error || "Failed to add student"}`);
+    }
+  } catch (err) {
+    console.error("Error adding student:", err);
+    alert("❌ An error occurred while adding the student.");
+  }
+};
+
 
 
   return (
@@ -262,7 +336,7 @@ const handleAddStudent = (e) => {
           {/* bottom buttons */}
 
           <div className="bottomcon">
-            <button className="editbut">
+            <button className="editbut" onClick={handleEdit}>
               <img
                 src={editIcon}
                 alt="Edit"
@@ -386,10 +460,226 @@ const handleAddStudent = (e) => {
                 </p>
               </div>
             )}
+          
           </div>
 
-          {/* 🔹 NEW Add Student Modal */}
-          {showAddForm && (
+
+
+
+{showEditForm && (
+  <div className="modal-overlay">
+    <div className="modal-content">
+      <div className="navbarhead">
+        <img
+          src={addstud}
+          alt="editstudent"
+          className="addicon"
+          style={{
+            width: "90px",
+            height: "90px",
+            position: "absolute",
+            left: "2.8vw",
+            top: "0vw",
+            zIndex: 3,
+          }}
+        />
+        <h2
+          style={{
+            color: "#ffffffff",
+            fontWeight: "bold",
+            position: "absolute",
+            left: "8vw",
+            top: "1vh",
+          }}
+        >
+          Edit Student
+        </h2>
+      </div>
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleEditSave(); // Call your update handler
+        }}
+      >
+        <label
+          htmlFor="idNumber"
+          style={{
+            color: "#2E3070",
+            fontWeight: "bold",
+            position: "absolute",
+            left: "37vw",
+            top: "32.5vh",
+          }}
+        >
+          ID Number
+        </label>
+        <input
+          id="idNumber"
+          placeholder="2023-3984"
+          className="addid"
+          type="text"
+          value={editStudent.IdNumber}
+          onChange={(e) =>
+            setEditStudent({ ...editStudent, IdNumber: e.target.value })
+          }
+          
+        />
+
+        <br />
+        <label
+          style={{
+            color: "#2E3070",
+            fontWeight: "bold",
+            position: "absolute",
+            left: "37vw",
+            top: "40.5vh",
+          }}
+        >
+          First Name:
+        </label>
+        <input
+          placeholder="Juan"
+          className="addfirst"
+          type="text"
+          value={editStudent.FirstName}
+          onChange={(e) =>
+            setEditStudent({ ...editStudent, FirstName: e.target.value })
+          }
+        />
+
+        <br />
+        <label
+          style={{
+            color: "#2E3070",
+            fontWeight: "bold",
+            position: "absolute",
+            left: "37vw",
+            top: "48.5vh",
+          }}
+        >
+          Last Name:
+        </label>
+        <input
+          placeholder="Quinlob"
+          type="text"
+          className="addlast"
+          value={editStudent.LastName}
+          onChange={(e) =>
+            setEditStudent({ ...editStudent, LastName: e.target.value })
+          }
+        />
+
+        <br />
+        <label
+          style={{
+            color: "#2E3070",
+            fontWeight: "bold",
+            position: "absolute",
+            left: "51vw",
+            top: "32.5vh",
+          }}
+        >
+          Year Level:
+        </label>
+        <select
+          className="addyear"
+          value={editStudent.YearLevel}
+          onChange={(e) =>
+            setEditStudent({ ...editStudent, YearLevel: e.target.value })
+          }
+        >
+          <option value="">Year</option>
+          <option value="1st Year">1st Year</option>
+          <option value="2nd Year">2nd Year</option>
+          <option value="3rd Year">3rd Year</option>
+          <option value="4th Year">4th Year</option>
+        </select>
+
+        <br />
+        <label
+          style={{
+            color: "#2E3070",
+            fontWeight: "bold",
+            position: "absolute",
+            left: "51vw",
+            top: "56.5vh",
+          }}
+        >
+          Gender:
+        </label>
+        <select
+          className="addgen"
+          value={editStudent.Gender}
+          onChange={(e) =>
+            setEditStudent({ ...editStudent, Gender: e.target.value })
+          }
+        >
+          <option value="">Gender</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+        </select>
+
+        <br />
+        <label
+          style={{
+            color: "#2E3070",
+            fontWeight: "bold",
+            position: "absolute",
+            left: "37vw",
+            top: "56.5vh",
+          }}
+        >
+          Program Code:
+        </label>
+        <select
+          className="addprog"
+          value={editStudent.ProgramCode}
+          onChange={(e) =>
+            setEditStudent({ ...editStudent, ProgramCode: e.target.value })
+          }
+        >
+          <option value="">ProgramCode</option>
+          <option value="BSCS">BSCS</option>
+          <option value="BSIT">BSIT</option>
+          <option value="BSECE">BSECE</option>
+          <option value="BSBA">BSBA</option>
+        </select>
+
+        <br />
+        <button type="submit" className="addsub" onClick={handleEditSave} >
+          Save
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setShowEditForm(false);
+            setEditStudent({
+              IdNumber: "",
+              FirstName: "",
+              LastName: "",
+              YearLevel: "",
+              Gender: "",
+              ProgramCode: "",
+            });
+          }}
+          className="canceladd"
+        >
+          Cancel
+        </button>
+      </form>
+    </div>
+  </div>
+)}
+
+
+
+
+
+
+          
+        {showAddForm && (
             <div className="modal-overlay">
               <div className="modal-content">
                 <div className="navbarhead"> <img

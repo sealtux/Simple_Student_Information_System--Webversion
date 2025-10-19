@@ -79,3 +79,59 @@ class StudentModel:
         finally:
             cursor.close()
             conn.close()
+
+    @staticmethod
+    def sort_students(key="IdNumber", limit=9, offset=0):
+        conn = get_connection()
+        cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        try:
+            
+            valid_columns = {"IdNumber", "FirstName", "LastName", "YearLevel", "Gender", "ProgramCode"}
+            if key not in valid_columns:
+                key = "IdNumber"
+
+            query = f'''
+                SELECT "IdNumber", "FirstName", "LastName", "YearLevel", "Gender", "ProgramCode"
+                FROM student
+                ORDER BY "{key}"
+                LIMIT %s OFFSET %s
+            '''
+            cursor.execute(query, (limit, offset))
+            return cursor.fetchall()
+        finally:
+            cursor.close()
+            conn.close()
+
+    @staticmethod
+    def update_student(old_id, data):
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("""
+                UPDATE student
+                SET "IdNumber" = %s,
+                    "FirstName" = %s,
+                    "LastName" = %s,
+                    "YearLevel" = %s,
+                    "Gender" = %s,
+                    "ProgramCode" = %s
+                WHERE "IdNumber" = %s
+                RETURNING "IdNumber"
+            """, (
+                data["IdNumber"],  # new ID number
+                data["FirstName"],
+                data["LastName"],
+                data["YearLevel"],
+                data["Gender"],
+                data["ProgramCode"],
+                old_id  # old ID number for lookup
+            ))
+            updated = cursor.fetchone()
+            conn.commit()
+            return updated is not None
+        finally:
+            cursor.close()
+            conn.close()
+
+
+

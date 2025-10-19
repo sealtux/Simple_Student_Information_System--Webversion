@@ -3,8 +3,8 @@ import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "./login/login";
 import Program from "./program/program";
-import Student from "./student/student";
-import College from "./college/college";
+import Student from "../../../student/student";
+import College from "../../../college/college";
 
 function AppRoutes({ loggedIn, setLoggedIn }) {
   return (

@@ -44,3 +44,34 @@ def search_students():
     offset = (page - 1) * limit
     students = StudentModel.search_students(query_text, limit, offset)
     return jsonify(students)
+
+@student_bp.route("/sort")
+def sort_students():
+    key = request.args.get("key", "IdNumber")
+    page = int(request.args.get("page", 1))
+    limit = 9
+    offset = (page - 1) * limit
+
+    try:
+        students = StudentModel.sort_students(key, limit, offset)
+        return jsonify(students), 200
+    except Exception as e:
+        print("Error sorting students:", e)
+        return jsonify({"error": "Failed to sort students"}), 500
+
+@student_bp.route("/<id>", methods=["PUT"])
+def update_student(id):
+    data = request.json
+    required_fields = ["FirstName", "LastName", "YearLevel", "Gender", "ProgramCode"]
+    
+    for field in required_fields:
+        if not data.get(field) or str(data.get(field)).strip() == "":
+            return jsonify({"error": f"{field} is required"}), 400
+
+    try:
+        updated = StudentModel.update_student(id, data)
+        if not updated:
+            return jsonify({"error": "Student not found"}), 404
+        return jsonify({"message": f"Student {id} updated successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
