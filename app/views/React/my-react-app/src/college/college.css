@@ -1,5 +1,560 @@
-.hel{
-    color:blue;position: absolute;   
-    top:200px;
+.containers{
+    position: absolute;
+    top: 11vw;
+    left: 17.5vw;
     
+}
+table {
+position: absolute;
+  border-collapse: separate;    
+  border-spacing: 0;
+     
+  border-radius: 10px;           
+   width: 80vw;
+  left: 0px;
+  top:0px;
+  
+              
+  height: 20vh;
+table-layout: auto;
+
+                
+}
+
+.table-container {
+  height: 26.3vw;
+  overflow: auto;
+}
+
+thead th {
+  
+  background-color: #D6D6F4;
+  border: none;
+  height: 7vh;     
+  font-size: 24;     
+    font-weight: 600; 
+}
+
+thead th:first-child {
+  border-top-left-radius:8px;
+}
+
+thead th:last-child {
+  border-top-right-radius: 8px;
+}
+
+tbody td {
+  border-bottom: 2px solid #E7E7E7;
+  height: 40px;            
+  vertical-align: right;
+  font-size: 20px;           
+  font-weight: 600;         
+  padding: 1px 83px;
+}
+table td, table th {
+  text-align: center;
+  padding: 8px;
+}
+
+.bottomcon {
+  height: 4vw;
+  width: 99.75%;
+  
+  background-color: #ffffff;
+  position: absolute;
+  top: 25.8vw;
+  border-bottom-left-radius: 8px;
+   border-bottom-right-radius: 8px;
+   border-top: 2px solid #E7E7E7;
+    border-bottom: 2px solid #E7E7E7;
+    border-right: 2px solid #E7E7E7;
+    border-left: 2px solid #E7E7E7;
+}
+
+.bottombar {
+  height: 6.5vw;
+  width: 100.5vw;
+ 
+  background-color: #2E3070;
+  position: absolute;
+  top: 31.7vw;
+  left: -18vw;
+  z-index: 3;
+    
+}
+
+
+.editbut{
+  position: absolute;
+  background-color: #ffffff;
+  color:#2E3070;
+  border: 3px solid #2E3070;
+  font-size: 20px;
+  height: 50px;
+  font-weight: bold;
+  padding-top: 5px;
+  padding-left: 40px;
+  width: 160px;
+  left: 69vw;
+  top: .8vw;
+}
+.addbut{
+  position: absolute;
+  background-color: #2E3070;
+  color:#ffffff;
+  border: 3px solid #2E3070;
+  font-size: 20px;
+  height: 49px;
+  font-weight: bold;
+  padding-top: 5px;
+  padding-left: 40px;
+  width: 150px;
+  left: 2vw;
+  top: -30vw;
+}
+
+.deletebut{
+   position: absolute;
+  background-color: #ffffff;
+  color:#2E3070;
+  border: 3px solid #2E3070;
+  font-size: 20px;
+  height: 49px;
+  font-weight: bold;
+  padding-top: 5px;
+  padding-left: 40px;
+  width: 170px;
+  left: 10.5vw;
+    outline: none;
+  top: -30vw;
+}
+.informationtext {
+  position: absolute;
+  color: #ffffff;
+  font-weight: bold  ;   
+  font-size: 40px;     
+   font-family: 'Inter',sans-serif;
+   top:1.6vw;
+   left: 8.7vw;
+}
+.copyright{
+  position: absolute;
+  top:4.2vw;
+   left: 78vw;
+}
+
+.terms{
+   position: absolute;
+  top:4.2vw;
+   left: 87vw;
+    text-decoration: underline;
+}
+
+
+
+
+
+td div {
+  padding: 6px 10px;
+  border-radius: 4px;
+ 
+}
+
+td div:hover {
+  background-color: #f0f0f0;
+  cursor: pointer;
+}
+
+.selected {
+  background-color: #e2e0e0;
+  font-weight: bold;
+}
+
+.selected-row {
+  background-color: #e2e0e0; /* light blue */
+}
+
+.sortbut {
+  position: absolute;
+  background-color: #ffffff;
+  border: 3px solid #2E3070;
+  color: #2E3070;
+  font-size: 20px;
+  height: 49px;
+  font-weight: bold;
+  padding-top: 5px;
+  padding-left: 35px;
+   width: 200px;
+  border-radius: 10px;
+  left: 50vw; 
+  top: -4vw;
+  outline: none;
+  cursor: pointer;
+}
+
+.sort-popup {
+  position: absolute;
+  top: -1vw; 
+  left: 50.3vw;
+  background: rgb(255, 255, 255);
+  border: 3px solid #2E3070;
+  border-radius: 6px;
+  box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+  color:#2E3070;
+  padding: 10px;
+  z-index: 1000;
+  font-weight: bold;
+}
+
+.sort-popup p {
+  margin: 5px 0;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+}
+
+.sort-popup p:hover {
+  background: #f0f0f0;
+}
+
+.search{
+  position: absolute;
+  background-color: #F2F2FF;
+  border: 3px solid #2E3070;
+  top: -4vw;
+   height: 49px;
+   width: 350px;
+   border-radius: 10px;
+    left:61vw; 
+    top: -4vw;
+    color: #2E3070;
+     font-size: 20px;
+     padding: 0 20px;
+      outline: none;
+      font-weight: bold;
+}
+.search::placeholder {
+  color: #5d5f9b;      
+  font-size: 20px;     
+   font-weight: bold;
+}
+
+
+.table-container {
+  width: 79vw;
+  border: 2px solid #E7E7E7;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  overflow: visible; /
+}
+
+.table-container table {
+  border-collapse: collapse;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.table-container thead th,
+.table-container tbody td {
+  height: 48px;         
+  line-height: 48px;    
+  padding: 0 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  text-align: center;
+  vertical-align: middle;
+}
+
+
+
+tr.no-results td {
+  height: 48px !important;
+  line-height: 48px !important;
+  padding: 0 12px !important;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.modal-content {
+  background: #ffffff;
+   border: 3px solid #2E3070;
+  padding: 20px;
+  border-radius: 10px;
+  
+  
+  box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+  height: 30vw;
+  width: 35vw;
+}
+
+.navbarhead{
+position: absolute;
+background-color: #2E3070;
+height: 10vh;
+width: 37.2vw;
+left: 31.4vw;
+top: 17.2vh;
+border-radius: 6px;
+}
+.addsub{
+  position: absolute;
+  left: 60vw;
+  top: 36vw;
+  height: 6vh;
+  width: 7vw;
+  background-color: #2E3070;
+  color: #ffffff;
+}
+.canceladd{
+  position: absolute;
+  left: 33vw;
+  top: 36vw;
+  height: 6vh;
+  width: 7vw;
+  background-color: #ffffff;
+  color: #2E3070;
+  border: 3px solid #2E3070 ;
+}
+
+.addid{
+  background-color: #F2F2FF;  
+  border: 3px solid #2E3070;
+  font-weight: bold;
+  width: 26vw;
+  height: 4.5vh;
+  left: 37vw;
+  position: absolute;         
+  border-radius: 6px;
+  color: #2E3070;               
+  padding: 5px;    
+  top:35vh          
+}
+.addfirst{
+  background-color: #F2F2FF;   
+  border: 3px solid #2E3070;
+  font-weight: bold;
+  width: 26vw;
+  height: 4.5vh;
+  left: 37vw;
+  top: 43vh;
+  position: absolute;          
+  border-radius: 6px;
+  color: #2E3070;               
+  padding: 5px;               
+}
+.addlast{
+  background-color: #F2F2FF;   
+  border: 3px solid #2E3070;
+  font-weight: bold;
+  width: 26vw;
+  height: 4.5vh;
+  left: 37vw;
+  top: 51vh;
+  position: absolute;          
+  border-radius: 6px;
+  color: #2E3070;               
+  padding: 5px; 
+}
+.addgen{
+background-color: #F2F2FF;   
+  border: 3px solid #2E3070;
+  font-weight: bold;
+  width: 12vw;
+  height: 4.5vh;
+  left: 51vw;
+  top: 59vh;
+  position: absolute;          
+  border-radius: 6px;
+  color: #2E3070;               
+  padding: 5px;   
+  
+}
+.addyear{
+background-color: #F2F2FF;   
+  border: 3px solid #2E3070;
+  font-weight: bold;
+  width: 12vw;
+  height: 4.5vh;
+  left: 51vw;
+  top: 35vh;
+  position: absolute;          
+  border-radius: 6px;
+  color: #2E3070;               
+  padding: 5px;   
+  
+}
+.filler-row td {
+  height: 48px;
+  border: 1px solid white;  
+  background-color: transparent; 
+}
+
+.addprog{
+  background-color: #F2F2FF;  
+  border: 3px solid #2E3070;
+  font-weight: bold;
+  width: 13vw;
+  height: 4.5vh;
+  left: 37vw;
+  position: absolute;         
+  border-radius: 6px;
+  color: #2E3070;               
+  padding: 5px;    
+  top: 59vh 
+}
+/* ----------------------- EXISTING ADD STUDENT MODAL ----------------------- */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.modal-content {
+  background: #ffffff;
+  border: 3px solid #2E3070;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+  height: 30vw;
+  width: 35vw;
+}
+
+/* ----------------------- DELETE CONFIRMATION MODAL ----------------------- */
+/* ----------------------- DELETE CONFIRMATION MODAL ----------------------- */
+.confirm-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5); /* dark background */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000; /* higher than add student modal */
+}
+
+.confirm-modal-content {
+  background: #fff;
+  padding: 20px 30px;
+  border-radius: 10px;
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  border: 3px solid #2E3070;
+  box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+}
+
+.confirm-modal-buttons {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+.confirm-modal-buttons button {
+  padding: 8px 16px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  border-radius: 6px;
+}
+
+/* ✅ Red "Yes" button */
+.confirm-modal-buttons .yes-btn {
+  background-color: #d9534f;
+  color: #fff;
+}
+.confirm-modal-buttons .yes-btn:hover {
+  background-color: #c9302c;
+}
+
+/* ✅ Outlined blue "No" button */
+.confirm-modal-buttons .no-btn {
+  background-color: #ffffff;
+  color: #2E3070;
+  border: 3px solid #2E3070;
+}
+.confirm-modal-buttons .no-btn:hover {
+  background-color: #f0f0f0;
+}
+
+/* ----------------------- DELETE BUTTON STYLE ----------------------- */
+.deletebut {
+  position: absolute;
+  background-color: #ffffff;
+  color: #2E3070;
+  border: 3px solid #2E3070;
+  font-size: 20px;
+  height: 49px;
+  font-weight: bold;
+  padding-top: 5px;
+  padding-left: 40px;
+  width: 170px;
+  left: 10.5vw;
+  outline: none;
+  top: -30vw;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.deletebut:hover {
+  
+  transform: scale(1.03);
+}
+
+.addbut:hover {
+  
+  transform: scale(1.03);
+}
+
+
+/* Yes / No button styles can reuse your .addsub and .canceladd */
+.Prev{
+    position: absolute;
+  background-color: #2E3070;
+  color:#ffffff;
+  border: 3px solid #2E3070;
+  font-size: 20px;
+  height: 49px;
+  font-weight: bold;
+  padding-top: 5px;
+  width: 7vw;
+
+  left: 1vw;
+  top: .8vw;
+}
+.Next{
+    position: absolute;
+  background-color: #2E3070;
+  color:#ffffff;
+  border: 3px solid #2E3070;
+  font-size: 20px;
+  height: 49px;
+  font-weight: bold;
+  padding-top: 5px;
+  
+
+  left: 10vw;
+  top: .8vw;
 }

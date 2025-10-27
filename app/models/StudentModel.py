@@ -11,7 +11,7 @@ class StudentModel:
             cursor.execute("""
                 SELECT "IdNumber", "FirstName", "LastName", "YearLevel", "Gender", "ProgramCode"
                 FROM student
-                ORDER BY "IdNumber"
+               
                 LIMIT %s OFFSET %s
             """, (limit, offset))
             return cursor.fetchall()
@@ -85,22 +85,22 @@ class StudentModel:
         conn = get_connection()
         cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         try:
-            
             valid_columns = {"IdNumber", "FirstName", "LastName", "YearLevel", "Gender", "ProgramCode"}
             if key not in valid_columns:
                 key = "IdNumber"
 
-            query = f'''
+            cursor.execute(f'''
                 SELECT "IdNumber", "FirstName", "LastName", "YearLevel", "Gender", "ProgramCode"
                 FROM student
-                ORDER BY "{key}"
+                ORDER BY "{key}" ASC
                 LIMIT %s OFFSET %s
-            '''
-            cursor.execute(query, (limit, offset))
+            ''', (limit, offset))
             return cursor.fetchall()
         finally:
             cursor.close()
             conn.close()
+
+
 
     @staticmethod
     def update_student(old_id, data):
@@ -134,4 +134,17 @@ class StudentModel:
             conn.close()
 
 
-
+    @staticmethod
+    def get_students_by_program(programcode):
+            conn = get_connection()
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            try:
+                cursor.execute("""
+                    SELECT "IdNumber", "FirstName", "LastName", "ProgramCode"
+                    FROM student
+                    WHERE LOWER("ProgramCode") = LOWER(%s)
+                """, (programcode,))
+                return cursor.fetchall()
+            finally:
+                cursor.close()
+                conn.close()

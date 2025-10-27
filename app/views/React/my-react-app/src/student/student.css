@@ -328,7 +328,7 @@ border-radius: 6px;
   border: 3px solid #2E3070 ;
 }
 
-.addid{
+.addids{
   background-color: #F2F2FF;  
   border: 3px solid #2E3070;
   font-weight: bold;
@@ -530,3 +530,31 @@ background-color: #F2F2FF;
 
 
 /* Yes / No button styles can reuse your .addsub and .canceladd */
+.Prev{
+    position: absolute;
+  background-color: #2E3070;
+  color:#ffffff;
+  border: 3px solid #2E3070;
+  font-size: 20px;
+  height: 49px;
+  font-weight: bold;
+  padding-top: 5px;
+  width: 7vw;
+
+  left: 1vw;
+  top: .8vw;
+}
+.Next{
+    position: absolute;
+  background-color: #2E3070;
+  color:#ffffff;
+  border: 3px solid #2E3070;
+  font-size: 20px;
+  height: 49px;
+  font-weight: bold;
+  padding-top: 5px;
+  
+
+  left: 10vw;
+  top: .8vw;
+}

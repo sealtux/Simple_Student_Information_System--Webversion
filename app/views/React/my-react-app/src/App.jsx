@@ -52,7 +52,7 @@ function Navbar({ onLogout }) {
         }}
         style={{
           marginLeft: "20px",
-          padding: "6px 12px",
+          padding: "6 px 12px",
           borderRadius: "8px",
           border: "none",
           background: "#5C5EAD",
