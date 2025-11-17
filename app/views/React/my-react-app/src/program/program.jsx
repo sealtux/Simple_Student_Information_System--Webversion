@@ -24,6 +24,8 @@ const [colleges, setColleges] = useState([]);
 
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deleteMessage, setDeleteMessage] = useState("");
+    const [showAddConfirm,setShowAddConfirm] = useState(false);
+    const [showEditConfirm,setShowEditConfirm] = useState(false);
 
     // Edit/Add states
     const [showEditForm, setShowEditForm] = useState(false);
@@ -600,7 +602,7 @@ const handleAddProgram = async (e) => {
   ))}
 </select>
                     <br />
-                    <button type="submit" className="addsub">Save</button>
+                    <button type="button" className="addsub" onClick={() => setShowEditConfirm(true)}>Save</button>
                     <button
                       type="button"
                       className="canceladd"
@@ -670,7 +672,8 @@ const handleAddProgram = async (e) => {
 
 
                     <br />
-                    <button type="submit" className="addsub">Save</button>
+                    <button type="button" className="addsub" onClick={() => setShowAddConfirm(true)}>Save</button>
+
                     <button
                       type="button"
                       className="canceladd"
@@ -682,6 +685,7 @@ const handleAddProgram = async (e) => {
                 </div>
               </div>
             )}
+
 
             {/* Delete Confirmation */}
             {showDeleteConfirm && (
@@ -714,6 +718,69 @@ const handleAddProgram = async (e) => {
                 </div>
               </div>
             )}
+
+      {showAddConfirm && (
+  <div className="confirm-modal-overlay">
+    <div className="confirm-modal-content">
+      <h3 style={{ color: "#2E3070" }}>Add Student</h3>
+      <h5 style={{ color: "#2E3070" }}>Are you sure you want to add this program?</h5>
+
+      <div className="confirm-modal-buttons">
+        <button
+        style={{ backgroundColor: "#2E3070" }}
+          className="yes-btn "
+          onClick={() => {
+            setShowAddConfirm(false);
+          handleAddProgram({ preventDefault: () => {} });
+
+
+          }}
+        >
+          Yes
+        </button>
+
+        <button
+          className="no-btn"
+          onClick={() => setShowAddConfirm(false)}
+        >
+          No
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
+{showEditConfirm && (
+  <div className="confirm-modal-overlay">
+    <div className="confirm-modal-content">
+      <h3 style={{ color: "#2E3070" }}>Edit Student</h3>
+      <h5 style={{ color: "#2E3070" }}>Are you sure you want to save changes?</h5>
+
+      <div className="confirm-modal-buttons">
+        <button
+        
+          className="yes-btn"
+           style={{ backgroundColor: "#2E3070" }}
+          onClick={async () => {
+            setShowEditConfirm(false);
+            await handleEditSave({ preventDefault: () => {} });
+            setShowEditForm(false); // close edit form
+          }}
+        >
+          Yes
+        </button>
+
+        <button
+          className="no-btn"
+          onClick={() => setShowEditConfirm(false)}
+        >
+          No
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
             {/* Footer */}
             <div className="bottombar">

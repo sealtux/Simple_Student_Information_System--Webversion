@@ -25,6 +25,8 @@ function College() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteMessage, setDeleteMessage] = useState("");
 
+  const [showAddConfirm, setShowAddConfirm] = useState(false);
+  const [showEditConfirm,setShowEditConfirm] = useState(false);
   // Edit states
   const [showEditForm, setShowEditForm] = useState(false);
   const [editCollege, setEditCollege] = useState({
@@ -451,7 +453,7 @@ const validateCollege = (college, existingColleges) => {
                   <input className="addfirst" type="text" value={editCollege.collegename} onChange={(e) => setEditCollege({ ...editCollege, collegename: e.target.value })} />
 
                   <br />
-                  <button type="submit" className="addsub">Save</button>
+                  <button type="button" className="addsub" onClick={()=>{setShowEditConfirm(true)}}>Save</button>
                   <button type="button" className="canceladd" onClick={() => { setShowEditForm(false); setEditCollege({ collegecode: "", collegename: "" }); }}>Cancel</button>
                 </form>
               </div>
@@ -476,7 +478,7 @@ const validateCollege = (college, existingColleges) => {
                   <input className="addfirst" type="text" value={newCollege.collegename} onChange={(e) => setNewCollege({ ...newCollege, collegename: e.target.value })} />
 
                   <br />
-                  <button type="submit" className="addsub">Save</button>
+                  <button type="button" className="addsub" onClick={()=>{setShowAddConfirm(true)}}>Save</button>
                   <button type="button" className="canceladd" onClick={() => { setShowAddForm(false); setNewCollege({ collegecode: "", collegename: "" }); }}>Cancel</button>
                 </form>
               </div>
@@ -522,6 +524,66 @@ const validateCollege = (college, existingColleges) => {
           </div>
         </>
       )}
+       {showAddConfirm && (
+  <div className="confirm-modal-overlay">
+    <div className="confirm-modal-content">
+      <h3 style={{ color: "#2E3070" }}>Add College</h3>
+      <h5 style={{ color: "#2E3070" }}>Are you sure you want to add this College?</h5>
+
+      <div className="confirm-modal-buttons">
+        <button
+        style={{ backgroundColor: "#2E3070" }}
+          className="yes-btn "
+          onClick={() => {
+            setShowAddConfirm(false);
+           handleAddCollege({ preventDefault: () => {} });
+
+          }}
+        >
+          Yes
+        </button>
+
+        <button
+          className="no-btn"
+          onClick={() => setShowAddConfirm(false)}
+        >
+          No
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+{showEditConfirm && (
+  <div className="confirm-modal-overlay">
+    <div className="confirm-modal-content">
+      <h3 style={{ color: "#2E3070" }}>Edit College</h3>
+      <h5 style={{ color: "#2E3070" }}>Are you sure you want to save changes?</h5>
+
+      <div className="confirm-modal-buttons">
+        <button
+        
+          className="yes-btn"
+           style={{ backgroundColor: "#2E3070" }}
+          onClick={async () => {
+            setShowEditConfirm(false);
+            await handleEditSave({ preventDefault: () => {} });
+            setShowEditForm(false); // close edit form
+          }}
+        >
+          Yes
+        </button>
+
+        <button
+          className="no-btn"
+          onClick={() => setShowEditConfirm(false)}
+        >
+          No
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 }

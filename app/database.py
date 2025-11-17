@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 import os
-
+import psycopg2
 # Force load .env from the parent directory
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
 
@@ -14,5 +14,5 @@ DB_CONFIG = {
 print("Connecting to DB:", DB_CONFIG)  
 
 def get_connection():
-    import psycopg2
+    
     return psycopg2.connect(**DB_CONFIG)

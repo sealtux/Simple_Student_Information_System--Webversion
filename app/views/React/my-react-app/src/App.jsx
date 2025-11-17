@@ -1,15 +1,23 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
+
 import Login from "./login/login";
 import Student from "./student/student";
 import Program from "./program/program";
 import College from "./college/college";
+import Signup from "./signup/signup";
 import "./assets/App.css";
 
-// Navbar using React Router navigation
 function Navbar({ onLogout }) {
   const navigate = useNavigate();
-  const location = useLocation(); // current route
+  const location = useLocation();
 
   const activeStyle = {
     borderBottom: "5px solid #5C5EAD",
@@ -30,15 +38,17 @@ function Navbar({ onLogout }) {
       >
         Student
       </button>
+
       <button
-      className="collegebutton"
+        className="collegebutton"
         onClick={() => navigate("/program")}
         style={location.pathname === "/program" ? activeStyle : defaultStyle}
       >
         Program
       </button>
+
       <button
-       className="programbutton"
+        className="programbutton"
         onClick={() => navigate("/college")}
         style={location.pathname === "/college" ? activeStyle : defaultStyle}
       >
@@ -51,17 +61,27 @@ function Navbar({ onLogout }) {
           navigate("/login");
         }}
         style={{
-          marginLeft: "20px",
-          padding: "6 px 12px",
+          marginLeft: "186vh",
+          padding: "8px 12px",
           borderRadius: "8px",
           border: "none",
           background: "#5C5EAD",
           color: "white",
           cursor: "pointer",
+          marginTop: "-59px",
+          position: "absolute",
         }}
       >
         Logout
       </button>
+
+      <div
+        className="profile-circle"
+        style={{ backgroundColor: "#5C5EAD" }}
+        onClick={() => navigate("/profile")}
+      >
+        <span className="profile-initial">A</span>
+      </div>
     </div>
   );
 }
@@ -71,7 +91,7 @@ function AppWrapper() {
 
   useEffect(() => {
     const savedLogin = localStorage.getItem("loggedIn");
-    if (savedLogin === "true") setLoggedIn(true);
+    setLoggedIn(savedLogin === "true");
   }, []);
 
   useEffect(() => {
@@ -81,32 +101,52 @@ function AppWrapper() {
   return (
     <Router>
       <div>
-        <div className="background">
-          <div className="sidebar">
-            <div className="underline"></div>
-            <div className="recent">Recent Activity</div>
-          </div>
-        </div>
+        {/* navbar only shows when logged in */}
+        {loggedIn && (
+          <>
+            <div className="background">
+              <div className="sidebar">
+                <div className="underline"></div>
+                <div className="recent">Recent Activity</div>
+              </div>
+            </div>
 
-        {loggedIn && <Navbar onLogout={() => setLoggedIn(false)} />}
+            <Navbar onLogout={() => setLoggedIn(false)} />
+          </>
+        )}
 
         <Routes>
+          {/* PUBLIC ROUTES */}
           <Route
             path="/login"
-            element={loggedIn ? <Navigate to="/student" replace /> : <Login onLogin={() => setLoggedIn(true)} />}
+            element={
+              loggedIn ? (
+                <Navigate to="/student" replace />
+              ) : (
+                <Login onLogin={() => setLoggedIn(true)} />
+              )
+            }
           />
+
+          <Route path="/signup" element={<Signup />} />
+
+          {/* PROTECTED ROUTES */}
           <Route
             path="/student"
             element={loggedIn ? <Student /> : <Navigate to="/login" replace />}
           />
+
           <Route
             path="/program"
             element={loggedIn ? <Program /> : <Navigate to="/login" replace />}
           />
+
           <Route
             path="/college"
             element={loggedIn ? <College /> : <Navigate to="/login" replace />}
           />
+
+          {/* DEFAULT */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </div>
