@@ -108,3 +108,19 @@ class ProgramModel:
         finally:
             cursor.close()
             conn.close()
+
+    @staticmethod
+    def get_all_programs():
+        conn = get_connection()
+        cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        try:
+            cursor.execute("""
+                SELECT "collegecode", "programcode", "programname"
+                FROM program
+                ORDER BY "programcode"
+            """)
+            return cursor.fetchall()
+        finally:
+            cursor.close()
+            conn.close()
+

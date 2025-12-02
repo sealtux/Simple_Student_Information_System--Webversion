@@ -17,6 +17,8 @@ function College() {
   const [loading, setLoading] = useState(true);
   const tableRef = useRef(null);
   const [originalCollegeCode, setOriginalCollegeCode] = useState("");
+  const [activeSort, setActiveSort] = useState(null);
+
   // Pagination
   const [page, setPage] = useState(1);
   const limit = 9;
@@ -83,43 +85,84 @@ const fetchColleges = async (pageNum = 1) => {
 
   // Pagination handlers
   const handleNext = () => {
-    if (hasNext) fetchColleges(page + 1);
-  };
+  if (!hasNext) return;
 
-  const handlePrev = () => {
-    if (page > 1) fetchColleges(page - 1);
-  };
+  if (searchTerm.trim()) {
+    handleSearchSubmit({ preventDefault: () => {} }, page + 1);
+    return;
+  }
+
+  if (activeSort) {
+    fetch(
+      `http://127.0.0.1:5000/colleges/sort?key=${activeSort}&page=${page + 1}`
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        setColleges(data.colleges || []);
+        setHasNext(data.has_next || false);
+        setPage(page + 1);
+      });
+    return;
+  }
+
+  fetchColleges(page + 1);
+};
+
+const handlePrev = () => {
+  if (page <= 1) return;
+
+  if (searchTerm.trim()) {
+    handleSearchSubmit({ preventDefault: () => {} }, page - 1);
+    return;
+  }
+
+  if (activeSort) {
+    fetch(
+      `http://127.0.0.1:5000/colleges/sort?key=${activeSort}&page=${page - 1}`
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        setColleges(data.colleges || []);
+        setHasNext(data.has_next || false);
+        setPage(page - 1);
+      });
+    return;
+  }
+
+  fetchColleges(page - 1);
+};
 
   // Sorting
 const handleSort = async (key) => {
+  // Reset sort
   if (key === "default") {
+    setActiveSort(null);
     fetchColleges(1);
     setShowSortMenu(false);
     return;
   }
 
-  setColleges([]);
+  setActiveSort(key);
   setLoading(true);
-
-  await new Promise((resolve) => requestAnimationFrame(resolve));
 
   try {
     const res = await fetch(
       `http://127.0.0.1:5000/colleges/sort?key=${encodeURIComponent(key)}&page=1`
     );
     const data = await res.json();
-    const arr = Array.isArray(data) ? data : data.colleges || [];
 
+    const arr = Array.isArray(data.colleges) ? data.colleges : [];
     setColleges(arr);
     setHasNext(data.has_next || arr.length === limit);
     setPage(1);
   } catch (err) {
-    console.error("Error fetching sorted colleges:", err);
+    console.error("Sort error:", err);
   } finally {
     setLoading(false);
     setShowSortMenu(false);
   }
 };
+
 
 
 
@@ -157,40 +200,46 @@ const handleSort = async (key) => {
   
 const confirmDelete = async () => {
   try {
-    // 1️⃣ Check if any program is linked to this college
-    const progRes = await fetch(`http://127.0.0.1:5000/programs`);
+    // ✅ 1. Fetch ALL programs (no pagination)
+    const progRes = await fetch("http://127.0.0.1:5000/programs/all");
     const progData = await progRes.json();
 
-    // Assuming your API returns { programs: [...] }
-    const hasLinkedPrograms = progData.programs?.some(
-      (p) => p.collegecode === selectedRow.collegecode
-    );
+    const hasLinkedPrograms =
+      Array.isArray(progData.programs) &&
+      progData.programs.some(
+        (p) => p.collegecode === selectedRow.collegecode
+      );
 
     if (hasLinkedPrograms) {
-      setDeleteMessage(` Cannot delete college '${selectedRow.collegecode}' because it has existing programs.`);
+      // ✅ Block delete if programs still reference this college
+      setDeleteMessage(
+        `Cannot delete college '${selectedRow.collegecode}' because it has existing programs.`
+      );
       return;
     }
 
-    // 2️⃣ Proceed with delete
-    const res = await fetch(`http://127.0.0.1:5000/colleges/${selectedRow.collegecode}`, {
-      method: "DELETE",
-    });
+    // ✅ 2. Safe to delete — backend will still double-check
+    const res = await fetch(
+      `http://127.0.0.1:5000/colleges/${selectedRow.collegecode}`,
+      { method: "DELETE" }
+    );
     const data = await res.json();
 
-    if (data.error) {
-      setDeleteMessage(" " + data.error);
+    if (!res.ok) {
+      setDeleteMessage(data.error || "Failed to delete college.");
       return;
     }
 
     await fetchColleges(page);
     setSelectedRow(null);
     setShowDeleteConfirm(false);
-    alert(data.message || " College deleted successfully!");
+    alert(data.message || "College deleted successfully!");
   } catch (err) {
     console.error(err);
-    setDeleteMessage(" Failed to delete college.");
+    setDeleteMessage("Failed to delete college.");
   }
 };
+
 
   // Edit
 

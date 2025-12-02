@@ -26,6 +26,7 @@ const [colleges, setColleges] = useState([]);
     const [deleteMessage, setDeleteMessage] = useState("");
     const [showAddConfirm,setShowAddConfirm] = useState(false);
     const [showEditConfirm,setShowEditConfirm] = useState(false);
+const [activeSort, setActiveSort] = useState(null);
 
     // Edit/Add states
     const [showEditForm, setShowEditForm] = useState(false);
@@ -52,14 +53,20 @@ const [colleges, setColleges] = useState([]);
     };
 
     useEffect(() => {
-  fetch("http://127.0.0.1:5000/colleges") // your endpoint to get colleges
+  // 1. Load programs (paginated)
+  fetchPrograms(1);
+
+  // 2. Load ALL colleges for dropdown (no pagination)
+  fetch("http://127.0.0.1:5000/colleges/all")
     .then((res) => res.json())
     .then((data) => {
-      const arr = Array.isArray(data) ? data : data.colleges || [];
+      const arr = Array.isArray(data.colleges) ? data.colleges : [];
       setColleges(arr);
     })
     .catch((err) => console.error("Error fetching colleges:", err));
 }, []);
+
+
 
     // Fetch programs
     const fetchPrograms = async (pageNum = 1) => {
@@ -87,28 +94,59 @@ const [colleges, setColleges] = useState([]);
     }, []);
 
     // Pagination
-    const handleNext = () => {
+   const handleNext = () => {
+  if (!hasNext) return;
+
+  // If searching → keep search filter
   if (searchTerm.trim()) {
     handleSearchSubmit({ preventDefault: () => {} }, page + 1);
-  } else {
-    fetchPrograms(page + 1);
+    return;
   }
+
+  // If sorting → keep sorted list
+  if (activeSort) {
+    fetch(`http://127.0.0.1:5000/programs/sort?key=${activeSort}&page=${page + 1}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setPrograms(data.programs || []);
+        setHasNext(data.has_next || false);
+        setPage(page + 1);
+      });
+    return;
+  }
+
+  fetchPrograms(page + 1);
 };
 
 const handlePrev = () => {
-  if (page > 1) {
-    if (searchTerm.trim()) {
-      handleSearchSubmit({ preventDefault: () => {} }, page - 1);
-    } else {
-      fetchPrograms(page - 1);
-    }
+  if (page <= 1) return;
+
+  // Searching
+  if (searchTerm.trim()) {
+    handleSearchSubmit({ preventDefault: () => {} }, page - 1);
+    return;
   }
+
+  // Sorting
+  if (activeSort) {
+    fetch(`http://127.0.0.1:5000/programs/sort?key=${activeSort}&page=${page - 1}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setPrograms(data.programs || []);
+        setHasNext(data.has_next || false);
+        setPage(page - 1);
+      });
+    return;
+  }
+
+  fetchPrograms(page - 1);
 };
 
 
     // Sort
 const handleSort = (key) => {
-  // Reset to default
+  setActiveSort(key === "default" ? null : key);
+
   if (key === "default") {
     fetchPrograms(1);
     setShowSortMenu(false);
@@ -118,7 +156,6 @@ const handleSort = (key) => {
   fetch(`http://127.0.0.1:5000/programs/sort?key=${encodeURIComponent(key)}&page=1`)
     .then((res) => res.json())
     .then((data) => {
-      // Handle both possible structures
       const arr = Array.isArray(data) ? data : data.programs || [];
       setPrograms(arr);
       setHasNext(data.has_next || arr.length === limit);
@@ -592,15 +629,18 @@ const handleAddProgram = async (e) => {
                     <select
   className="addcollege"
   value={editProgram.collegecode}
-  onChange={(e) => setEditProgram({ ...editProgram, collegecode: e.target.value })}
+  onChange={(e) =>
+    setEditProgram({ ...editProgram, collegecode: e.target.value })
+  }
 >
   <option value="">-- Select College --</option>
   {colleges.map((c) => (
-    <option key={c.collegecode}>
+    <option key={c.collegecode} value={c.collegecode}>
       {c.collegecode}
     </option>
   ))}
 </select>
+
                     <br />
                     <button type="button" className="addsub" onClick={() => setShowEditConfirm(true)}>Save</button>
                     <button
@@ -669,6 +709,7 @@ const handleAddProgram = async (e) => {
     </option>
   ))}
 </select>
+
 
 
                     <br />

@@ -3,7 +3,7 @@ from app.models.ProgramModel import ProgramModel
 
 program_bp = Blueprint("program_bp", __name__, url_prefix="/programs")
 
-# GET (pagination)
+
 @program_bp.route("/")
 @program_bp.route("/page/<int:page>")
 def get_program(page=1):
@@ -16,12 +16,17 @@ def get_program(page=1):
         "has_next": has_next
     })
 
-# POST (add)
+
+@program_bp.route("/all", methods=["GET"])
+def get_all_programs_route():
+    programs = ProgramModel.get_all_programs()
+    return jsonify({"programs": programs}), 200
+
 @program_bp.route("/", methods=["POST"])
 def add_program():
     data = request.get_json()
     required_fields = ["programcode", "programname", "collegecode"]
-    if not all(field in data and data[field].strip() for field in required_fields):
+    if not all(field in data and str(data[field]).strip() for field in required_fields):
         return jsonify({"error": "All fields are required"}), 400
 
     try:
@@ -34,7 +39,7 @@ def add_program():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# PUT (update)
+
 @program_bp.route("/<string:programcode>", methods=["PUT"])
 def update_program(programcode):
     data = request.get_json()
@@ -49,7 +54,7 @@ def update_program(programcode):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# DELETE
+
 @program_bp.route("/<string:programcode>", methods=["DELETE"])
 def delete_program(programcode):
     try:
@@ -58,8 +63,7 @@ def delete_program(programcode):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# SEARCH
-# SEARCH with pagination
+
 @program_bp.route("/search")
 def search_program():
     query = request.args.get("q", "")
@@ -68,7 +72,6 @@ def search_program():
     offset = (page - 1) * limit
 
     try:
-        # fetch limit+1 to check if there is a next page
         programs = ProgramModel.search_program(query, limit + 1, offset)
         has_next = len(programs) > limit
         return jsonify({
@@ -80,17 +83,16 @@ def search_program():
         return jsonify({"error": "Failed to search programs"}), 500
 
 
-# SORT
 @program_bp.route("/sort")
 def sort_programs():
-    key = request.args.get("key", "ProgramCode")
+    key = request.args.get("key", "programcode")  
     page = int(request.args.get("page", 1))
     limit = 9
     offset = (page - 1) * limit
 
     try:
         programs = ProgramModel.sort_programs(key, limit + 1, offset)
-        has_next = len(programs) > limit  # check if there’s another page
+        has_next = len(programs) > limit
         return jsonify({
             "programs": programs[:limit],
             "has_next": has_next
@@ -98,7 +100,3 @@ def sort_programs():
     except Exception as e:
         print("❌ Sort error:", e)
         return jsonify({"error": "Failed to sort programs"}), 500
-
-
-
-

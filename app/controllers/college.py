@@ -75,7 +75,21 @@ def update_college(collegecode):
 @college_bp.route("/<string:collegecode>", methods=["DELETE"])
 def delete_college(collegecode):
     try:
-        CollegeModel.delete_college(collegecode)
-        return jsonify({"message": "College deleted successfully!"})
+        deleted = CollegeModel.delete_college(collegecode)
+
+        if not deleted:
+            return jsonify({
+                "error": "Cannot delete college because there are programs linked to it."
+            }), 400
+
+        return jsonify({"message": "College deleted successfully!"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+
+
+@college_bp.route("/all", methods=["GET"])
+def get_all_colleges_route():
+    colleges = CollegeModel.get_all_colleges()
+    return jsonify({"colleges": colleges}), 200

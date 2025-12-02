@@ -1,9 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../supabase";
 
 function Login({ onLogin }) {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");   // CHANGED from email → username
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
@@ -13,13 +12,19 @@ function Login({ onLogin }) {
     e.preventDefault();
     setError("");
 
-    const { data, error: loginError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+    const response = await fetch("http://localhost:5000/login/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username,
+        password,
+      }),
     });
 
-    if (loginError) {
-      setError("Invalid email or password.");
+    const data = await response.json();
+
+    if (!response.ok) {
+      setError(data.error || "Login failed");
       return;
     }
 
@@ -61,6 +66,7 @@ function Login({ onLogin }) {
           </p>
         )}
 
+        {/* Username Label */}
         <label
           style={{
             color: "#5C5EAD",
@@ -71,10 +77,12 @@ function Login({ onLogin }) {
             fontWeight: "bold",
           }}
         >
-          Email
+          Username
         </label>
+
+        {/* Username Input */}
         <input
-          type="email"
+          type="text"
           style={{
             backgroundColor: "#F2F2FF",
             marginTop: "130px",
@@ -87,11 +95,12 @@ function Login({ onLogin }) {
             border: "2px solid #2E3070",
             color: "#2E3070",
           }}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
           required
         />
 
+        {/* Password Label */}
         <label
           style={{
             color: "#5C5EAD",
@@ -105,6 +114,7 @@ function Login({ onLogin }) {
           Password
         </label>
 
+        {/* Password Input */}
         <input
           type="password"
           style={{
@@ -124,6 +134,7 @@ function Login({ onLogin }) {
           required
         />
 
+        {/* Login Button */}
         <button
           type="submit"
           style={{
@@ -140,6 +151,7 @@ function Login({ onLogin }) {
           Login
         </button>
 
+        {/* Sign Up Button */}
         <button
           type="button"
           onClick={() => navigate("/signup")}
@@ -152,6 +164,7 @@ function Login({ onLogin }) {
             color: "#2E3070",
             fontWeight: "bold",
             cursor: "pointer",
+            broder: "2px solid #2E3070",
           }}
         >
           Sign Up

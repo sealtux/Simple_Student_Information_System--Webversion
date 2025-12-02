@@ -1,10 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../supabase";
 
 function Signup() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState(""); 
   const [password, setPassword] = useState("");
   const [confirmPass, setConfirmPass] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -21,27 +19,23 @@ function Signup() {
       return;
     }
 
-    // 1️⃣ Create Supabase Auth user
-    const { data, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
+    const response = await fetch("http://localhost:5000/signup/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username,
+        password,
+      }),
     });
 
-    if (authError) {
-      setError(authError.message);
+    const data = await response.json();
+
+    if (!response.ok) {
+      setError(data.error || "Signup failed");
       return;
     }
 
-    const user = data.user;
-
-    // 2️⃣ Insert into profiles table
-    await supabase.from("profiles").insert({
-      id: user.id,
-      full_name: name,
-      role: "student",
-    });
-
-    alert("Signup successful! Please check your email to verify your account.");
+    alert("Signup successful!");
     navigate("/login");
   };
 
@@ -62,7 +56,7 @@ function Signup() {
           display: "flex",
           flexDirection: "column",
           width: "600px",
-          height: "520px",
+          height: "420px",
           padding: "40px",
           border: "1px solid #e6e6e6",
           borderRadius: "8px",
@@ -79,25 +73,25 @@ function Signup() {
           </p>
         )}
 
-        {/* FULL NAME */}
+        {/* USERNAME */}
         <label
           style={{
             color: "#5C5EAD",
-            marginTop: "90px",
+            marginTop: "100px",
             marginLeft: "6vh",
             position: "absolute",
             fontSize: "1.2rem",
             fontWeight: "bold",
           }}
         >
-          Full Name
+          Username
         </label>
 
         <input
           type="text"
           style={{
             backgroundColor: "#F2F2FF",
-            marginTop: "120px",
+            marginTop: "130px",
             height: "5vh",
             width: "49vh",
             marginLeft: "6vh",
@@ -107,41 +101,8 @@ function Signup() {
             border: "2px solid #2E3070",
             color: "#2E3070",
           }}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-        />
-
-        {/* EMAIL */}
-        <label
-          style={{
-            color: "#5C5EAD",
-            marginTop: "180px",
-            marginLeft: "6vh",
-            position: "absolute",
-            fontSize: "1.2rem",
-            fontWeight: "bold",
-          }}
-        >
-          Email
-        </label>
-
-        <input
-          type="email"
-          style={{
-            backgroundColor: "#F2F2FF",
-            marginTop: "210px",
-            height: "5vh",
-            width: "49vh",
-            marginLeft: "6vh",
-            position: "absolute",
-            borderRadius: "5px",
-            fontSize: "1.2rem",
-            border: "2px solid #2E3070",
-            color: "#2E3070",
-          }}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
           required
         />
 
@@ -149,7 +110,7 @@ function Signup() {
         <label
           style={{
             color: "#5C5EAD",
-            marginTop: "270px",
+            marginTop: "200px",
             marginLeft: "6vh",
             position: "absolute",
             fontSize: "1.2rem",
@@ -163,7 +124,7 @@ function Signup() {
           type={showPassword ? "text" : "password"}
           style={{
             backgroundColor: "#F2F2FF",
-            marginTop: "300px",
+            marginTop: "230px",
             height: "5vh",
             width: "49vh",
             marginLeft: "6vh",
@@ -182,7 +143,7 @@ function Signup() {
         <label
           style={{
             color: "#5C5EAD",
-            marginTop: "360px",
+            marginTop: "300px",
             marginLeft: "6vh",
             position: "absolute",
             fontSize: "1.2rem",
@@ -196,7 +157,7 @@ function Signup() {
           type={showPassword ? "text" : "password"}
           style={{
             backgroundColor: "#F2F2FF",
-            marginTop: "390px",
+            marginTop: "330px",
             height: "5vh",
             width: "49vh",
             marginLeft: "6vh",
@@ -211,10 +172,10 @@ function Signup() {
           required
         />
 
-        {/* SHOW PASSWORD CHECKBOX */}
+        {/* SHOW PASSWORD */}
         <label
           style={{
-            marginTop: "445px",
+            marginTop: "380px",
             marginLeft: "6vh",
             position: "absolute",
             fontSize: "0.9rem",
@@ -237,7 +198,7 @@ function Signup() {
         <button
           type="submit"
           style={{
-            marginTop: "477px",
+            marginTop: "390px",
             width: "15vh",
             marginLeft: "47vh",
             position: "absolute",
@@ -252,12 +213,12 @@ function Signup() {
           Sign Up
         </button>
 
-        {/* BACK */}
+        {/* BACK BUTTON */}
         <button
           type="button"
           onClick={() => navigate("/login")}
           style={{
-            marginTop: "470px",
+            marginTop: "380px",
             width: "15vh",
             marginLeft: "29vh",
             position: "absolute",

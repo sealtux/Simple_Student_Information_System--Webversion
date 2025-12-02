@@ -245,7 +245,7 @@ td div:hover {
   border: 2px solid #E7E7E7;
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
-  overflow: visible; /
+  overflow: visible; /* fixed – proper comment or just remove it */
 }
 
 .table-container table {
@@ -308,24 +308,29 @@ left: 31.4vw;
 top: 17.2vh;
 border-radius: 6px;
 }
-.addsub{
+
+.addsub {
   position: absolute;
   left: 60vw;
-  top: 36vw;
+  top: 70vh;        /* ⬅️ move button lower so dropdown doesn't cover it */
   height: 6vh;
   width: 7vw;
   background-color: #2E3070;
   color: #ffffff;
+  border: none;
 }
-.canceladd{
+
+
+/* Cancel button */
+.canceladd {
   position: absolute;
   left: 33vw;
-  top: 36vw;
+  top: 70vh;        /* ⬅️ same vertical line as Save */
   height: 6vh;
   width: 7vw;
   background-color: #ffffff;
   color: #2E3070;
-  border: 3px solid #2E3070 ;
+  border: 3px solid #2E3070;
 }
 
 .addids{
@@ -400,13 +405,12 @@ background-color: #F2F2FF;
   border: 1px solid white;  
   background-color: transparent; 
 }
-
 .addprog{
   background-color: #F2F2FF;  
   border: 3px solid #2E3070;
   font-weight: bold;
   width: 13vw;
-  height: 4.5vh;
+  height: 1.5vh;
   left: 37vw;
   position: absolute;         
   border-radius: 6px;
@@ -414,6 +418,8 @@ background-color: #F2F2FF;
   padding: 5px;    
   top: 59vh 
 }
+
+
 /* ----------------------- EXISTING ADD STUDENT MODAL ----------------------- */
 .modal-overlay {
   position: fixed;
@@ -477,6 +483,10 @@ background-color: #F2F2FF;
   cursor: pointer;
   font-weight: bold;
   border-radius: 6px;
+}
+
+.modal-content {
+  overflow: visible !important;
 }
 
 /* ✅ Red "Yes" button */
@@ -558,3 +568,4 @@ background-color: #F2F2FF;
   left: 10vw;
   top: .8vw;
 }
+

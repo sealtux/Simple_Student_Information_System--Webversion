@@ -9,9 +9,9 @@ class StudentModel:
         cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         try:
             cursor.execute("""
-                SELECT "IdNumber", "FirstName", "LastName", "YearLevel", "Gender", "ProgramCode"
+                SELECT "IdNumber", "FirstName", "LastName", "YearLevel", "Gender", 
+                       "ProgramCode", "profile_url"
                 FROM student
-               
                 LIMIT %s OFFSET %s
             """, (limit, offset))
             return cursor.fetchall()
@@ -25,11 +25,17 @@ class StudentModel:
         cursor = conn.cursor()
         try:
             cursor.execute("""
-                INSERT INTO student ("IdNumber", "FirstName", "LastName", "YearLevel", "Gender", "ProgramCode")
-                VALUES (%s, %s, %s, %s, %s, %s)
+                INSERT INTO student 
+                ("IdNumber", "FirstName", "LastName", "YearLevel", "Gender", "ProgramCode", "profile_url")
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
             """, (
-                data["IdNumber"], data["FirstName"], data["LastName"],
-                data["YearLevel"], data["Gender"], data["ProgramCode"]
+                data["IdNumber"],
+                data["FirstName"],
+                data["LastName"],
+                data["YearLevel"],
+                data["Gender"],
+                data["ProgramCode"],
+                data.get("profile_url")  # 🔥 new
             ))
             conn.commit()
         finally:
@@ -41,7 +47,10 @@ class StudentModel:
         conn = get_connection()
         cursor = conn.cursor()
         try:
-            cursor.execute('DELETE FROM student WHERE "IdNumber" = %s RETURNING "IdNumber"', (id,))
+            cursor.execute(
+                'DELETE FROM student WHERE "IdNumber" = %s RETURNING "IdNumber"', 
+                (id,)
+            )
             deleted = cursor.fetchone()
             conn.commit()
             return deleted is not None
@@ -56,7 +65,8 @@ class StudentModel:
         try:
             if query_text == "":
                 cursor.execute("""
-                    SELECT "IdNumber", "FirstName", "LastName", "YearLevel", "Gender", "ProgramCode"
+                    SELECT "IdNumber", "FirstName", "LastName", "YearLevel", "Gender", 
+                           "ProgramCode", "profile_url"
                     FROM student
                     ORDER BY "IdNumber"
                     LIMIT %s OFFSET %s
@@ -64,7 +74,8 @@ class StudentModel:
             else:
                 q = f"%{query_text}%"
                 cursor.execute("""
-                    SELECT "IdNumber", "FirstName", "LastName", "YearLevel", "Gender", "ProgramCode"
+                    SELECT "IdNumber", "FirstName", "LastName", "YearLevel", "Gender", 
+                           "ProgramCode", "profile_url"
                     FROM student
                     WHERE "IdNumber" ILIKE %s
                        OR "FirstName" ILIKE %s
@@ -90,17 +101,17 @@ class StudentModel:
                 key = "IdNumber"
 
             cursor.execute(f'''
-                SELECT "IdNumber", "FirstName", "LastName", "YearLevel", "Gender", "ProgramCode"
+                SELECT "IdNumber", "FirstName", "LastName", "YearLevel", "Gender", 
+                       "ProgramCode", "profile_url"
                 FROM student
                 ORDER BY "{key}" ASC
                 LIMIT %s OFFSET %s
             ''', (limit, offset))
+
             return cursor.fetchall()
         finally:
             cursor.close()
             conn.close()
-
-
 
     @staticmethod
     def update_student(old_id, data):
@@ -114,17 +125,19 @@ class StudentModel:
                     "LastName" = %s,
                     "YearLevel" = %s,
                     "Gender" = %s,
-                    "ProgramCode" = %s
+                    "ProgramCode" = %s,
+                    "profile_url" = %s
                 WHERE "IdNumber" = %s
                 RETURNING "IdNumber"
             """, (
-                data["IdNumber"],  # new ID number
+                data["IdNumber"],
                 data["FirstName"],
                 data["LastName"],
                 data["YearLevel"],
                 data["Gender"],
                 data["ProgramCode"],
-                old_id  # old ID number for lookup
+                data.get("profile_url"),  
+                old_id
             ))
             updated = cursor.fetchone()
             conn.commit()
@@ -133,18 +146,20 @@ class StudentModel:
             cursor.close()
             conn.close()
 
-
     @staticmethod
     def get_students_by_program(programcode):
-            conn = get_connection()
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            try:
-                cursor.execute("""
-                    SELECT "IdNumber", "FirstName", "LastName", "ProgramCode"
-                    FROM student
-                    WHERE LOWER("ProgramCode") = LOWER(%s)
-                """, (programcode,))
-                return cursor.fetchall()
-            finally:
-                cursor.close()
-                conn.close()
+        conn = get_connection()
+        cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        try:
+            cursor.execute("""
+                SELECT "IdNumber", "FirstName", "LastName", "ProgramCode", "profile_url"
+                FROM student
+                WHERE LOWER("ProgramCode") = LOWER(%s)
+            """, (programcode,))
+            return cursor.fetchall()
+        finally:
+            cursor.close()
+            conn.close()
+
+
+  

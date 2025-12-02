@@ -67,11 +67,29 @@ class CollegeModel:
         conn = get_connection()
         cursor = conn.cursor()
         try:
-            cursor.execute("""DELETE FROM college WHERE "collegecode" = %s""", (collegecode,))
+            # 1️⃣ Check if there are programs using this collegecode
+            cursor.execute("""
+                SELECT 1
+                FROM program
+                WHERE "collegecode" = %s
+                LIMIT 1
+            """, (collegecode,))
+
+            if cursor.fetchone():
+                # ❌ There is at least one program linked to this college
+                return False
+
+            # 2️⃣ Safe to delete
+            cursor.execute("""
+                DELETE FROM college
+                WHERE "collegecode" = %s
+            """, (collegecode,))
             conn.commit()
+            return True
         finally:
             cursor.close()
             conn.close()
+
 
     @staticmethod
     def search_college(query):
@@ -105,6 +123,21 @@ class CollegeModel:
                 ORDER BY "{key}"
                 LIMIT %s OFFSET %s
             """, (limit, offset))
+            return cursor.fetchall()
+        finally:
+            cursor.close()
+            conn.close()
+
+    @staticmethod
+    def get_all_colleges():
+        conn = get_connection()
+        cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        try:
+            cursor.execute("""
+                SELECT "collegecode", "collegename"
+                FROM college
+                ORDER BY "collegecode"
+            """)
             return cursor.fetchall()
         finally:
             cursor.close()
