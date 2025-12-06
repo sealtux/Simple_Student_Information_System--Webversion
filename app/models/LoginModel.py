@@ -1,4 +1,4 @@
-from app.database import get_connection
+from app.models.databaseconnection import get_connection
 import psycopg2.extras
 
 class LoginModel:

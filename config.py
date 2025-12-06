@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 import os
 
-load_dotenv()  # loads .env file
+load_dotenv() 
 
 db_config = {
     "host": os.getenv("DB_HOST"),
