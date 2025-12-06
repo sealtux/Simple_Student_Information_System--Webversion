@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+**/__pycache__/
+
+# Node / Vite
+node_modules/
+dist/
+build/
+.vite/
+
+# Env files
+.env
+.env.*
+.flaskenv
+
+# Logs
+*.log
