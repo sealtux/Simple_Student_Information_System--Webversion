@@ -162,4 +162,61 @@ class StudentModel:
             conn.close()
 
 
-  
+    @staticmethod
+    def id_exists(id_number, exclude_id=None):
+        """
+        Check if an IdNumber already exists.
+        If exclude_id is given, ignore that IdNumber (for edits).
+        """
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            if exclude_id:
+                cursor.execute(
+                    'SELECT 1 FROM student WHERE "IdNumber" = %s AND "IdNumber" <> %s LIMIT 1',
+                    (id_number, exclude_id)
+                )
+            else:
+                cursor.execute(
+                    'SELECT 1 FROM student WHERE "IdNumber" = %s LIMIT 1',
+                    (id_number,)
+                )
+            return cursor.fetchone() is not None
+        finally:
+            cursor.close()
+            conn.close()
+
+    @staticmethod
+    def name_exists(first_name, last_name, exclude_id=None):
+        """
+        Check if a FirstName + LastName combination already exists
+        (case-insensitive). If exclude_id is given, ignore that IdNumber.
+        """
+        conn = get_connection()
+        cursor = conn.cursor()
+        try:
+            if exclude_id:
+                cursor.execute(
+                    '''
+                    SELECT 1 FROM student
+                    WHERE LOWER("FirstName") = LOWER(%s)
+                      AND LOWER("LastName") = LOWER(%s)
+                      AND "IdNumber" <> %s
+                    LIMIT 1
+                    ''',
+                    (first_name, last_name, exclude_id)
+                )
+            else:
+                cursor.execute(
+                    '''
+                    SELECT 1 FROM student
+                    WHERE LOWER("FirstName") = LOWER(%s)
+                      AND LOWER("LastName") = LOWER(%s)
+                    LIMIT 1
+                    ''',
+                    (first_name, last_name)
+                )
+            return cursor.fetchone() is not None
+        finally:
+            cursor.close()
+            conn.close()

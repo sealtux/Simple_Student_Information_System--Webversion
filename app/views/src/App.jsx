@@ -14,12 +14,11 @@ import Program from "./Pages/program/program";
 import College from "./Pages/college/college";
 import Signup from "./Pages/signup/signup";
 import "./assets/styles/App.css";
-import Profile from"./assets/images/profile.png";
+import Profile from "./assets/images/profile.png";
 
 function Navbar({ onLogout }) {
   const navigate = useNavigate();
   const location = useLocation();
- 
 
   const activeStyle = {
     borderBottom: "5px solid #5C5EAD",
@@ -29,7 +28,15 @@ function Navbar({ onLogout }) {
   const defaultStyle = {
     borderBottom: "none",
     color: "#2E3070",
-    
+  };
+
+  // ✅ Logout with confirmation
+  const handleLogout = () => {
+    const confirmed = window.confirm("Are you sure you want to logout?");
+    if (!confirmed) return;
+
+    onLogout();
+    navigate("/login", { replace: true });
   };
 
   return (
@@ -59,10 +66,7 @@ function Navbar({ onLogout }) {
       </button>
 
       <button
-        onClick={() => {
-          onLogout();
-          navigate("/login");
-        }}
+        onClick={handleLogout}
         style={{
           marginLeft: "186vh",
           padding: "8px 12px",
@@ -83,47 +87,51 @@ function Navbar({ onLogout }) {
         style={{ backgroundColor: "#2E3070" }}
         onClick={() => navigate("/profile")}
       >
-          <span className="profile-initial"> 
-    <img
-      src={Profile}
-      alt="Profile"
-      style={{
-        width: "60px",   
-        height: "50px",
-        borderRadius: "50%",
-        objectFit: "cover",
-          marginTop: "7px",
-      }}
-    />
-  </span>
+        <span className="profile-initial">
+          <img
+            src={Profile}
+            alt="Profile"
+            style={{
+              width: "60px",
+              height: "50px",
+              borderRadius: "50%",
+              objectFit: "cover",
+              marginTop: "7px",
+            }}
+          />
+        </span>
       </div>
     </div>
   );
 }
 
 function AppWrapper() {
-  const [loggedIn, setLoggedIn] = useState(false);
- const [notes, setNotes] = useState(
-  () => localStorage.getItem("notes") || ""
-);
-  useEffect(() => {
+  // ✅ Initialize from localStorage once (no more initializing state)
+  const [loggedIn, setLoggedIn] = useState(() => {
     const savedLogin = localStorage.getItem("loggedIn");
-    setLoggedIn(savedLogin === "true");
-  }, []);
+    console.log("savedLogin from localStorage =", savedLogin); // debug
+    return savedLogin === "true";
+  });
 
-    // ✅ persist notes whenever it changes
+  const [notes, setNotes] = useState(
+    () => localStorage.getItem("notes") || ""
+  );
+
+  // ✅ persist notes whenever it changes
   useEffect(() => {
     localStorage.setItem("notes", notes);
   }, [notes]);
 
+  // ✅ persist loggedIn whenever it changes
   useEffect(() => {
-    localStorage.setItem("loggedIn", loggedIn);
+    console.log("loggedIn state changed to", loggedIn); // debug
+    localStorage.setItem("loggedIn", loggedIn ? "true" : "false");
   }, [loggedIn]);
 
   return (
     <Router>
       <div>
-        {/* navbar only shows when logged in */}
+        {/* navbar + notes only show when logged in */}
         {loggedIn && (
           <>
             <div className="background">
@@ -131,7 +139,6 @@ function AppWrapper() {
                 <div className="underline"></div>
                 <div className="recent">Notes</div>
 
-                  {/* ✅ Notes textarea styled like your example */}
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -140,20 +147,18 @@ function AppWrapper() {
                     border: "3px solid #2E3070",
                     color: "#2E3070",
                     width: "1002%",
-                    height:"600px",
+                    height: "600px",
                     marginTop: "102px",
-                    marginLeft:"-220px",
+                    marginLeft: "-220px",
                     padding: "1px",
                     borderRadius: "5px",
-                    resize: "none",        // no manual resize
-                    overflow: "auto",      // scroll if content is long
-                    whiteSpace: "normal",  // normal wrapping
-                    wordWrap: "break-word", // break very long words
-                    backgroundColor:"#ffffffff"
+                    resize: "none",
+                    whiteSpace: "normal",
+                    wordWrap: "break-word",
+                    backgroundColor: "#ffffffff",
                   }}
                   placeholder="Write your notes here..."
                 />
-
               </div>
             </div>
 
@@ -162,7 +167,7 @@ function AppWrapper() {
         )}
 
         <Routes>
-          {/* PUBLIC ROUTES */}
+          {/* PUBLIC ROUTES (blocked when logged in) */}
           <Route
             path="/login"
             element={
@@ -174,7 +179,12 @@ function AppWrapper() {
             }
           />
 
-          <Route path="/signup" element={<Signup />} />
+          <Route
+            path="/signup"
+            element={
+              loggedIn ? <Navigate to="/student" replace /> : <Signup />
+            }
+          />
 
           {/* PROTECTED ROUTES */}
           <Route
@@ -192,8 +202,21 @@ function AppWrapper() {
             element={loggedIn ? <College /> : <Navigate to="/login" replace />}
           />
 
-          {/* DEFAULT */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          {/* Root path: go to student if logged in, else login */}
+          <Route
+            path="/"
+            element={
+              <Navigate to={loggedIn ? "/student" : "/login"} replace />
+            }
+          />
+
+          {/* Catch-all: same behavior */}
+          <Route
+            path="*"
+            element={
+              <Navigate to={loggedIn ? "/student" : "/login"} replace />
+            }
+          />
         </Routes>
       </div>
     </Router>

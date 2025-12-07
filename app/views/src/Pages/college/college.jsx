@@ -6,11 +6,11 @@ import deleteIcon from "../../assets/images/delete.png";
 import sortIcon from  "../../assets/images/sort.png";
 import arrowIcon from "../../assets/images/arrowdown.png";
 import searchIcon from "../../assets/images/search.png";
-import addcollegeIcon from "../../assets/images/addcollege.png"; // reuse same icon or replace
+import addcollegeIcon from "../../assets/images/addcollege.png";
 
 function College() {
   const [colleges, setColleges] = useState([]);
-  const [originalColleges, setOriginalColleges] = useState([]);
+  const [allColleges, setAllColleges] = useState([]);   // ✅ full list for validation
   const [selectedRow, setSelectedRow] = useState(null);
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -28,7 +28,8 @@ function College() {
   const [deleteMessage, setDeleteMessage] = useState("");
 
   const [showAddConfirm, setShowAddConfirm] = useState(false);
-  const [showEditConfirm,setShowEditConfirm] = useState(false);
+  const [showEditConfirm, setShowEditConfirm] = useState(false);
+
   // Edit states
   const [showEditForm, setShowEditForm] = useState(false);
   const [editCollege, setEditCollege] = useState({
@@ -43,145 +44,152 @@ function College() {
     collegename: "",
   });
 
-  const setUniqueColleges = (data) => {
-    const unique = data.filter(
-      (c, index, self) =>
-        index === self.findIndex((s) => s.collegecode === c.collegecode)
-    );
-    setColleges(unique);
-    setOriginalColleges(unique);
+  // Fetch paginated colleges
+  const fetchColleges = async (pageNum = 1) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`http://127.0.0.1:5000/colleges/page/${pageNum}`);
+      const data = await res.json();
+
+      if (Array.isArray(data.colleges)) {
+        setColleges(data.colleges);
+        setHasNext(data.has_next || false);
+      } else {
+        setColleges([]);
+        setHasNext(false);
+      }
+
+      setPage(pageNum);
+    } catch (error) {
+      console.error("Error fetching colleges:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Fetch paginated colleges
-const fetchColleges = async (pageNum = 1) => {
-  setLoading(true);
-  try {
-    const res = await fetch(`http://127.0.0.1:5000/colleges/page/${pageNum}`);
-    const data = await res.json();
-    console.log("Fetched data:", data);
-
-    // Use 'colleges' key instead of 'college'
-    if (Array.isArray(data.colleges)) {
-      setColleges(data.colleges);
-      setHasNext(data.has_next || false);
-    } else {
-      setColleges([]);
-      setHasNext(false);
+  // ✅ Fetch ALL colleges for validation
+  const fetchAllColleges = async () => {
+    try {
+      const res = await fetch("http://127.0.0.1:5000/colleges/all");
+      const data = await res.json();
+      setAllColleges(data.colleges || data || []);
+    } catch (err) {
+      console.error("Error fetching all colleges:", err);
     }
-
-    setPage(pageNum);
-  } catch (error) {
-    console.error("Error fetching colleges:", error);
-  } finally {
-    setLoading(false);
-  }
-};
-
-
+  };
 
   useEffect(() => {
     fetchColleges(1);
+    fetchAllColleges();
   }, []);
 
   // Pagination handlers
   const handleNext = () => {
-  if (!hasNext) return;
+    if (!hasNext) return;
 
-  if (searchTerm.trim()) {
-    handleSearchSubmit({ preventDefault: () => {} }, page + 1);
-    return;
-  }
+    if (searchTerm.trim()) {
+      handleSearchSubmit({ preventDefault: () => {} }, page + 1);
+      return;
+    }
 
-  if (activeSort) {
-    fetch(
-      `http://127.0.0.1:5000/colleges/sort?key=${activeSort}&page=${page + 1}`
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        setColleges(data.colleges || []);
-        setHasNext(data.has_next || false);
-        setPage(page + 1);
-      });
-    return;
-  }
-
-  fetchColleges(page + 1);
-};
-
-const handlePrev = () => {
-  if (page <= 1) return;
-
-  if (searchTerm.trim()) {
-    handleSearchSubmit({ preventDefault: () => {} }, page - 1);
-    return;
-  }
-
-  if (activeSort) {
-    fetch(
-      `http://127.0.0.1:5000/colleges/sort?key=${activeSort}&page=${page - 1}`
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        setColleges(data.colleges || []);
-        setHasNext(data.has_next || false);
-        setPage(page - 1);
-      });
-    return;
-  }
-
-  fetchColleges(page - 1);
-};
-
-  // Sorting
-const handleSort = async (key) => {
-  // Reset sort
-  if (key === "default") {
-    setActiveSort(null);
-    fetchColleges(1);
-    setShowSortMenu(false);
-    return;
-  }
-
-  setActiveSort(key);
-  setLoading(true);
-
-  try {
-    const res = await fetch(
-      `http://127.0.0.1:5000/colleges/sort?key=${encodeURIComponent(key)}&page=1`
-    );
-    const data = await res.json();
-
-    const arr = Array.isArray(data.colleges) ? data.colleges : [];
-    setColleges(arr);
-    setHasNext(data.has_next || arr.length === limit);
-    setPage(1);
-  } catch (err) {
-    console.error("Sort error:", err);
-  } finally {
-    setLoading(false);
-    setShowSortMenu(false);
-  }
-};
-
-
-
-
-  // Search
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    if (searchTerm.trim() === "") {
-      fetchColleges(1);
-    } else {
-      fetch(`http://127.0.0.1:5000/colleges/search?q=${encodeURIComponent(searchTerm)}&page=1`)
+    if (activeSort) {
+      fetch(
+        `http://127.0.0.1:5000/colleges/sort?key=${activeSort}&page=${page + 1}`
+      )
         .then((res) => res.json())
         .then((data) => {
-          const arr = Array.isArray(data) ? data : [];
-          setUniqueColleges(arr);
-          setPage(1);
-          setHasNext(arr.length === limit);
-        })
-        .catch((err) => console.error(err));
+          setColleges(data.colleges || []);
+          setHasNext(data.has_next || false);
+          setPage(page + 1);
+        });
+      return;
     }
+
+    fetchColleges(page + 1);
+  };
+
+  const handlePrev = () => {
+    if (page <= 1) return;
+
+    if (searchTerm.trim()) {
+      handleSearchSubmit({ preventDefault: () => {} }, page - 1);
+      return;
+    }
+
+    if (activeSort) {
+      fetch(
+        `http://127.0.0.1:5000/colleges/sort?key=${activeSort}&page=${page - 1}`
+      )
+        .then((res) => res.json())
+        .then((data) => {
+          setColleges(data.colleges || []);
+          setHasNext(data.has_next || false);
+          setPage(page - 1);
+        });
+      return;
+    }
+
+    fetchColleges(page - 1);
+  };
+
+  // Sorting
+  const handleSort = async (key) => {
+    if (key === "default") {
+      setActiveSort(null);
+      fetchColleges(1);
+      setShowSortMenu(false);
+      return;
+    }
+
+    setActiveSort(key);
+    setLoading(true);
+
+    try {
+      const res = await fetch(
+        `http://127.0.0.1:5000/colleges/sort?key=${encodeURIComponent(
+          key
+        )}&page=1`
+      );
+      const data = await res.json();
+
+      const arr = Array.isArray(data.colleges) ? data.colleges : [];
+      setColleges(arr);
+      setHasNext(data.has_next || arr.length === limit);
+      setPage(1);
+    } catch (err) {
+      console.error("Sort error:", err);
+    } finally {
+      setLoading(false);
+      setShowSortMenu(false);
+    }
+  };
+
+  // Search (now paginated, like students/programs)
+  const handleSearchSubmit = (e, pageNum = 1) => {
+    if (e) e.preventDefault();
+    const q = searchTerm.trim();
+
+    if (!q) {
+      // empty search → go back to normal paginated list
+      fetchColleges(pageNum);
+      return;
+    }
+
+    setLoading(true);
+    fetch(
+      `http://127.0.0.1:5000/colleges/search?q=${encodeURIComponent(
+        q
+      )}&page=${pageNum}`
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        const arr = Array.isArray(data.colleges) ? data.colleges : [];
+        setColleges(arr);
+        setHasNext(data.has_next || arr.length === limit);
+        setPage(pageNum);
+      })
+      .catch((err) => console.error("Search error:", err))
+      .finally(() => setLoading(false));
   };
 
   // Delete
@@ -197,53 +205,49 @@ const handleSort = async (key) => {
     );
     setShowDeleteConfirm(true);
   };
-  
-const confirmDelete = async () => {
-  try {
-    // ✅ 1. Fetch ALL programs (no pagination)
-    const progRes = await fetch("http://127.0.0.1:5000/programs/all");
-    const progData = await progRes.json();
 
-    const hasLinkedPrograms =
-      Array.isArray(progData.programs) &&
-      progData.programs.some(
-        (p) => p.collegecode === selectedRow.collegecode
+  const confirmDelete = async () => {
+    try {
+      // Optional frontend check (backend also checks)
+      const progRes = await fetch("http://127.0.0.1:5000/programs/all");
+      const progData = await progRes.json();
+
+      const hasLinkedPrograms =
+        Array.isArray(progData.programs) &&
+        progData.programs.some(
+          (p) => p.collegecode === selectedRow.collegecode
+        );
+
+      if (hasLinkedPrograms) {
+        setDeleteMessage(
+          `Cannot delete college '${selectedRow.collegecode}' because it has existing programs.`
+        );
+        return;
+      }
+
+      const res = await fetch(
+        `http://127.0.0.1:5000/colleges/${selectedRow.collegecode}`,
+        { method: "DELETE" }
       );
+      const data = await res.json();
 
-    if (hasLinkedPrograms) {
-      // ✅ Block delete if programs still reference this college
-      setDeleteMessage(
-        `Cannot delete college '${selectedRow.collegecode}' because it has existing programs.`
-      );
-      return;
+      if (!res.ok) {
+        setDeleteMessage(data.error || "Failed to delete college.");
+        return;
+      }
+
+      await fetchColleges(page);
+      await fetchAllColleges(); // ✅ keep validation list updated
+      setSelectedRow(null);
+      setShowDeleteConfirm(false);
+      alert(data.message || "College deleted successfully!");
+    } catch (err) {
+      console.error(err);
+      setDeleteMessage("Failed to delete college.");
     }
-
-    // ✅ 2. Safe to delete — backend will still double-check
-    const res = await fetch(
-      `http://127.0.0.1:5000/colleges/${selectedRow.collegecode}`,
-      { method: "DELETE" }
-    );
-    const data = await res.json();
-
-    if (!res.ok) {
-      setDeleteMessage(data.error || "Failed to delete college.");
-      return;
-    }
-
-    await fetchColleges(page);
-    setSelectedRow(null);
-    setShowDeleteConfirm(false);
-    alert(data.message || "College deleted successfully!");
-  } catch (err) {
-    console.error(err);
-    setDeleteMessage("Failed to delete college.");
-  }
-};
-
+  };
 
   // Edit
-
-
   const handleEdit = () => {
     if (!selectedRow) return;
     setOriginalCollegeCode(selectedRow.collegecode);
@@ -251,112 +255,115 @@ const confirmDelete = async () => {
     setShowEditForm(true);
   };
 
-const handleEditSave = async (e) => {
-  e.preventDefault();
+  const handleEditSave = async (e) => {
+    e.preventDefault();
 
-  if (!originalCollegeCode) {
-    alert("⚠️ No college selected for editing.");
-    return;
-  }
-
-  if (!validateCollegeEdit(editCollege, colleges, originalCollegeCode)) return;
-
-  try {
-    const res = await fetch(`http://127.0.0.1:5000/colleges/${originalCollegeCode}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(editCollege),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data?.error || "Update failed. College may not exist.");
+    if (!originalCollegeCode) {
+      alert("⚠️ No college selected for editing.");
+      return;
     }
 
-    alert(data.message || "College updated successfully!");
-    setShowEditForm(false);
-    setSelectedRow(null);
-    await fetchColleges(page);
+    if (!validateCollegeEdit(editCollege, allColleges, originalCollegeCode))
+      return;
 
-  } catch (err) {
-    console.error(err);
-    alert("Failed to update college: " + err.message);
-  }
-};
+    try {
+      const res = await fetch(
+        `http://127.0.0.1:5000/colleges/${originalCollegeCode}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(editCollege),
+        }
+      );
 
+      const data = await res.json();
 
-// Validate before saving edits
-const validateCollegeEdit = (college, existingColleges, originalCode) => {
-  // Check for empty fields
-  for (const [key, value] of Object.entries(college)) {
-    if (!String(value).trim()) {
-      alert(`${key} is required`);
+      if (!res.ok) {
+        throw new Error(data?.error || "Update failed. College may not exist.");
+      }
+
+      alert(data.message || "College updated successfully!");
+      setShowEditForm(false);
+      setSelectedRow(null);
+      await fetchColleges(page);
+      await fetchAllColleges(); // ✅ refresh global list
+    } catch (err) {
+      console.error(err);
+      alert("Failed to update college: " + err.message);
+    }
+  };
+
+  // Validate before saving edits (uses ALL colleges)
+  const validateCollegeEdit = (college, existingColleges, originalCode) => {
+    for (const [key, value] of Object.entries(college)) {
+      if (!String(value).trim()) {
+        alert(`${key} is required`);
+        return false;
+      }
+    }
+
+    const duplicateCode = existingColleges.find(
+      (c) =>
+        c.collegecode.trim().toLowerCase() ===
+          college.collegecode.trim().toLowerCase() &&
+        c.collegecode.trim().toLowerCase() !==
+          originalCode.trim().toLowerCase()
+    );
+    if (duplicateCode) {
+      alert("A college with this code already exists.");
       return false;
     }
-  }
 
-  // Check duplicate code (case-insensitive, excluding the original)
-  const duplicateCode = existingColleges.find(
-    (c) =>
-      c.collegecode.trim().toLowerCase() === college.collegecode.trim().toLowerCase() &&
-      c.collegecode.trim().toLowerCase() !== originalCode.trim().toLowerCase()
-  );
-  if (duplicateCode) {
-    alert("A college with this code already exists.");
-    return false;
-  }
-
-  // Check duplicate name (case-insensitive, excluding the original)
-  const duplicateName = existingColleges.find(
-    (c) =>
-      c.collegename.trim().toLowerCase() === college.collegename.trim().toLowerCase() &&
-      c.collegecode.trim().toLowerCase() !== originalCode.trim().toLowerCase()
-  );
-  if (duplicateName) {
-    alert("A college with this name already exists.");
-    return false;
-  }
-
-  return true; // ✅ passes validation
-};
-
-  // Add
-// Validate before adding a new college
-const validateCollege = (college, existingColleges) => {
-  // Check for empty fields
-  for (const [key, value] of Object.entries(college)) {
-    if (!String(value).trim()) {
-      alert(`${key} is required`);
+    const duplicateName = existingColleges.find(
+      (c) =>
+        c.collegename.trim().toLowerCase() ===
+          college.collegename.trim().toLowerCase() &&
+        c.collegecode.trim().toLowerCase() !==
+          originalCode.trim().toLowerCase()
+    );
+    if (duplicateName) {
+      alert("A college with this name already exists.");
       return false;
     }
-  }
 
-  // Check duplicate code (exact match)
-  const duplicateCode = existingColleges.find(
-    (c) => c.collegecode.trim().toLowerCase() === college.collegecode.trim().toLowerCase()
-  );
-  if (duplicateCode) {
-    alert(" A college with this code already exists.");
-    return false;
-  }
+    return true;
+  };
 
-  // Check duplicate name (case-insensitive)
-  const duplicateName = existingColleges.find(
-    (c) => c.collegename.trim().toLowerCase() === college.collegename.trim().toLowerCase()
-  );
-  if (duplicateName) {
-    alert(" A college with this name already exists.");
-    return false;
-  }
+  // Validate before adding a new college (uses ALL colleges)
+  const validateCollege = (college, existingColleges) => {
+    for (const [key, value] of Object.entries(college)) {
+      if (!String(value).trim()) {
+        alert(`${key} is required`);
+        return false;
+      }
+    }
 
-  return true; // ✅ passes validation
-};
+    const duplicateCode = existingColleges.find(
+      (c) =>
+        c.collegecode.trim().toLowerCase() ===
+        college.collegecode.trim().toLowerCase()
+    );
+    if (duplicateCode) {
+      alert("A college with this code already exists.");
+      return false;
+    }
 
+    const duplicateName = existingColleges.find(
+      (c) =>
+        c.collegename.trim().toLowerCase() ===
+        college.collegename.trim().toLowerCase()
+    );
+    if (duplicateName) {
+      alert("A college with this name already exists.");
+      return false;
+    }
+
+    return true;
+  };
 
   const handleAddCollege = async (e) => {
     e.preventDefault();
-    if (!validateCollege(newCollege, colleges)) return;
+    if (!validateCollege(newCollege, allColleges)) return;
 
     try {
       const res = await fetch("http://127.0.0.1:5000/colleges/", {
@@ -366,16 +373,17 @@ const validateCollege = (college, existingColleges) => {
       });
       const data = await res.json();
       if (res.ok) {
-        alert(" College added successfully!");
+        alert("College added successfully!");
         setShowAddForm(false);
         setNewCollege({ collegecode: "", collegename: "" });
         await fetchColleges(page);
+        await fetchAllColleges(); // ✅ update full list
       } else {
-        alert(` ${data.error || "Failed to add college"}`);
+        alert(`${data.error || "Failed to add college"}`);
       }
     } catch (err) {
       console.error(err);
-      alert(" An error occurred while adding the college.");
+      alert("An error occurred while adding the college.");
     }
   };
 
@@ -386,74 +394,167 @@ const validateCollege = (college, existingColleges) => {
       ) : (
         <>
           {/* Table */}
-          <div className="table-container" style={{ width: "79vw", border: "2px solid #E7E7E7", borderTopLeftRadius: "10px", borderTopRightRadius: "10px" }}>
-            <table ref={tableRef} style={{ color: "#2E3070", borderSpacing: "0", width: "100%" }}>
+          <div
+            className="table-container"
+            style={{
+              width: "79vw",
+              border: "2px solid #E7E7E7",
+              borderTopLeftRadius: "10px",
+              borderTopRightRadius: "10px",
+            }}
+          >
+            <table
+              ref={tableRef}
+              style={{ color: "#2E3070", borderSpacing: "0", width: "100%" }}
+            >
               <thead>
                 <tr>
                   <th>College Code</th>
                   <th>College Name</th>
                 </tr>
               </thead>
-            
-               <tbody>
-  {colleges.length > 0 ? (
-    colleges.map((college, rowIndex) => (
-      <tr
-        key={college.collegecode || rowIndex}
-        onClick={() => setSelectedRow(college)}
-        className={
-          selectedRow?.collegecode === college.collegecode
-            ? "selected-row"
-            : ""
-        }
-        style={{ cursor: "pointer" }}
-      >
-        <td>{college.collegecode}</td>
-        <td>{college.collegename}</td>
-      </tr>
-    ))
-  ) : (
-    <tr className="no-results">
-      <td colSpan="2" style={{ textAlign: "center", color: "#999" }}>
-        No colleges found
-      </td>
-    </tr>
-  )}
 
-  {/* 👇 Filler rows for consistent height */}
-  {Array.from({ length: Math.max(0, 4 - colleges.length) }).map((_, i) => (
-    <tr key={`filler-${i}`} className="filler-row">
-      <td colSpan="2">&nbsp;</td>
-    </tr>
-  ))}
-</tbody>
+              <tbody>
+                {colleges.length > 0 ? (
+                  colleges.map((college, rowIndex) => (
+                    <tr
+                      key={college.collegecode || rowIndex}
+                      onClick={() => setSelectedRow(college)}
+                      className={
+                        selectedRow?.collegecode === college.collegecode
+                          ? "selected-row"
+                          : ""
+                      }
+                      style={{ cursor: "pointer" }}
+                    >
+                      <td>{college.collegecode}</td>
+                      <td>{college.collegename}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr className="no-results">
+                    <td
+                      colSpan="2"
+                      style={{ textAlign: "center", color: "#999" }}
+                    >
+                      No colleges found
+                    </td>
+                  </tr>
+                )}
 
+                {/* filler rows */}
+                {Array.from({ length: Math.max(0, 4 - colleges.length) }).map(
+                  (_, i) => (
+                    <tr key={`filler-${i}`} className="filler-row">
+                      <td colSpan="2">&nbsp;</td>
+                    </tr>
+                  )
+                )}
+              </tbody>
             </table>
           </div>
 
           {/* Bottom buttons */}
           <div className="bottomcon">
             <button className="editbut" onClick={handleEdit}>
-              <img src={editIcon} alt="Edit" className="icon" style={{ width: "30px", height: "30px", position: "absolute", left: "32px" }} />
+              <img
+                src={editIcon}
+                alt="Edit"
+                className="icon"
+                style={{
+                  width: "30px",
+                  height: "30px",
+                  position: "absolute",
+                  left: "32px",
+                }}
+              />
               Edit
             </button>
 
             <button className="addbut" onClick={() => setShowAddForm(true)}>
-              <img src={addIcon} alt="Add" className="addicon" style={{ width: "30px", height: "30px", position: "absolute", left: "30px" }} />
+              <img
+                src={addIcon}
+                alt="Add"
+                className="addicon"
+                style={{
+                  width: "30px",
+                  height: "30px",
+                  position: "absolute",
+                  left: "30px",
+                }}
+              />
               Add
             </button>
 
             {/* Pagination */}
-            <div className="pagination-controls" style={{ display: "flex", justifyContent: "center", marginTop: "1rem" }}>
-              <button className="Prev" onClick={handlePrev} disabled={page === 1} style={{ padding: "0.5rem 1rem", marginRight: "0.5rem", borderRadius: "0.5rem", border: "none", backgroundColor: page === 1 ? "#ccc" : "#4956AD", color: "white", cursor: page === 1 ? "not-allowed" : "pointer" }}>
-                Previous</button>
-              <span style={{ alignSelf: "center", fontWeight: "bold",  color:"#4956AD"}}>Page {page}</span>
-              <button className="Next" onClick={handleNext} disabled={!hasNext} style={{ padding: "0.5rem 1rem", marginLeft: "0.5rem", borderRadius: "0.5rem", border: "none", backgroundColor: !hasNext ? "#ccc" : "#4956AD", color: "white", cursor: !hasNext ? "not-allowed" : "pointer" }}>Next</button>
+            <div
+              className="pagination-controls"
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                marginTop: "1rem",
+              }}
+            >
+              <button
+                className="Prev"
+                onClick={handlePrev}
+                disabled={page === 1}
+                style={{
+                  padding: "0.5rem 1rem",
+                  marginRight: "0.5rem",
+                  borderRadius: "0.5rem",
+                  border: "none",
+                  backgroundColor: page === 1 ? "#ccc" : "#4956AD",
+                  color: "white",
+                  cursor: page === 1 ? "not-allowed" : "pointer",
+                }}
+              >
+                Previous
+              </button>
+              <span
+                style={{
+                  alignSelf: "center",
+                  fontWeight: "bold",
+                  color: "#4956AD",
+                }}
+              >
+                Page {page}
+              </span>
+              <button
+                className="Next"
+                onClick={handleNext}
+                disabled={!hasNext}
+                style={{
+                  padding: "0.5rem 1rem",
+                  marginLeft: "0.5rem",
+                  borderRadius: "0.5rem",
+                  border: "none",
+                  backgroundColor: !hasNext ? "#ccc" : "#4956AD",
+                  color: "white",
+                  cursor: !hasNext ? "not-allowed" : "pointer",
+                }}
+              >
+                Next
+              </button>
             </div>
 
             <div className="action-buttons">
-              <button className="deletebut" onClick={handleDelete} disabled={!selectedRow}>
-                <img src={deleteIcon} alt="Delete" className="icon" style={{ width: "30px", height: "30px", position: "absolute", left: "30px" }} />
+              <button
+                className="deletebut"
+                onClick={handleDelete}
+                disabled={!selectedRow}
+              >
+                <img
+                  src={deleteIcon}
+                  alt="Delete"
+                  className="icon"
+                  style={{
+                    width: "30px",
+                    height: "30px",
+                    position: "absolute",
+                    left: "30px",
+                  }}
+                />
                 Delete
               </button>
             </div>
@@ -461,25 +562,70 @@ const validateCollege = (college, existingColleges) => {
 
           {/* Sort & search */}
           <div className="sortcon">
-            <button className="sortbut" onClick={() => setShowSortMenu(!showSortMenu)}>
-              <img src={sortIcon} alt="Sort" style={{ width: "30px", height: "30px", position: "absolute", left: "32px" }} />
-              <img src={arrowIcon} alt="arrrowdown" style={{ width: "35px", height: "35px", position: "absolute", left: "140px" }} />
+            <button
+              className="sortbut"
+              onClick={() => setShowSortMenu(!showSortMenu)}
+            >
+              <img
+                src={sortIcon}
+                alt="Sort"
+                style={{
+                  width: "30px",
+                  height: "30px",
+                  position: "absolute",
+                  left: "32px",
+                }}
+              />
+              <img
+                src={arrowIcon}
+                alt="arrrowdown"
+                style={{
+                  width: "35px",
+                  height: "35px",
+                  position: "absolute",
+                  left: "140px",
+                }}
+              />
               Sort by:
             </button>
 
             <div className="search-wrapper">
               <form onSubmit={handleSearchSubmit}>
-                <img src={searchIcon} alt="search" className="searchIcon" style={{ width: "35px", height: "35px", position: "absolute", left: "77vw", top: "-3.6vw", zIndex: 3 }} />
-                <input type="text" className="search" placeholder="Search" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-                <button type="submit" style={{ display: "none" }}>Search</button>
+                <img
+                  src={searchIcon}
+                  alt="search"
+                  className="searchIcon"
+                  style={{
+                    width: "35px",
+                    height: "35px",
+                    position: "absolute",
+                    left: "77vw",
+                    top: "-3.6vw",
+                    zIndex: 3,
+                  }}
+                />
+                <input
+                  type="text"
+                  className="search"
+                  placeholder="Search"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <button type="submit" style={{ display: "none" }}>
+                  Search
+                </button>
               </form>
             </div>
 
             {showSortMenu && (
               <div className="sort-popup">
                 <p onClick={() => handleSort("default")}>Sort by: Default</p>
-                <p onClick={() => handleSort("collegecode")}>Sort by College Code</p>
-                <p onClick={() => handleSort("collegename")}>Sort by College Name</p>
+                <p onClick={() => handleSort("collegecode")}>
+                  Sort by College Code
+                </p>
+                <p onClick={() => handleSort("collegename")}>
+                  Sort by College Name
+                </p>
               </div>
             )}
           </div>
@@ -489,21 +635,100 @@ const validateCollege = (college, existingColleges) => {
             <div className="modal-overlay">
               <div className="modal-content">
                 <div className="navbarhead">
-                  <img src={addcollegeIcon} alt="editcollege" className="addicon" style={{ width: "90px", height: "90px", position: "absolute", left: "2.8vw", top: "0vw", zIndex: 3 }} />
-                  <h2 style={{ color: "#ffffffff", fontWeight: "bold", position: "absolute", left: "8vw", top: "1vh" }}>Edit College</h2>
+                  <img
+                    src={addcollegeIcon}
+                    alt="editcollege"
+                    className="addicon"
+                    style={{
+                      width: "90px",
+                      height: "90px",
+                      position: "absolute",
+                      left: "2.8vw",
+                      top: "0vw",
+                      zIndex: 3,
+                    }}
+                  />
+                  <h2
+                    style={{
+                      color: "#ffffffff",
+                      fontWeight: "bold",
+                      position: "absolute",
+                      left: "8vw",
+                      top: "1vh",
+                    }}
+                  >
+                    Edit College
+                  </h2>
                 </div>
 
                 <form onSubmit={handleEditSave}>
-                  <label style={{ color: "#2E3070", fontWeight: "bold", position: "absolute", left: "37vw", top: "32.5vh" }}>College Code:</label>
-                  <input className="addid" type="text" value={editCollege.collegecode} onChange={(e) => setEditCollege({ ...editCollege, collegecode: e.target.value })} />
+                  <label
+                    style={{
+                      color: "#2E3070",
+                      fontWeight: "bold",
+                      position: "absolute",
+                      left: "37vw",
+                      top: "32.5vh",
+                    }}
+                  >
+                    College Code:
+                  </label>
+                  <input
+                    className="addid"
+                    type="text"
+                    value={editCollege.collegecode}
+                    onChange={(e) =>
+                      setEditCollege({
+                        ...editCollege,
+                        collegecode: e.target.value,
+                      })
+                    }
+                  />
 
                   <br />
-                  <label style={{ color: "#2E3070", fontWeight: "bold", position: "absolute", left: "37vw", top: "40.5vh" }}>College Name:</label>
-                  <input className="addfirst" type="text" value={editCollege.collegename} onChange={(e) => setEditCollege({ ...editCollege, collegename: e.target.value })} />
+                  <label
+                    style={{
+                      color: "#2E3070",
+                      fontWeight: "bold",
+                      position: "absolute",
+                      left: "37vw",
+                      top: "40.5vh",
+                    }}
+                  >
+                    College Name:
+                  </label>
+                  <input
+                    className="addfirst"
+                    type="text"
+                    value={editCollege.collegename}
+                    onChange={(e) =>
+                      setEditCollege({
+                        ...editCollege,
+                        collegename: e.target.value,
+                      })
+                    }
+                  />
 
                   <br />
-                  <button type="button" className="addsub" onClick={()=>{setShowEditConfirm(true)}}>Save</button>
-                  <button type="button" className="canceladd" onClick={() => { setShowEditForm(false); setEditCollege({ collegecode: "", collegename: "" }); }}>Cancel</button>
+                  <button
+                    type="button"
+                    className="addsub"
+                    onClick={() => {
+                      setShowEditConfirm(true);
+                    }}
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    className="canceladd"
+                    onClick={() => {
+                      setShowEditForm(false);
+                      setEditCollege({ collegecode: "", collegename: "" });
+                    }}
+                  >
+                    Cancel
+                  </button>
                 </form>
               </div>
             </div>
@@ -514,21 +739,105 @@ const validateCollege = (college, existingColleges) => {
             <div className="modal-overlay">
               <div className="modal-content">
                 <div className="navbarhead">
-                  <img src={addcollegeIcon} alt="addcollege" className="addicon" style={{ width: "90px", height: "90px", position: "absolute", left: "2.8vw", top: "0vw", zIndex: 3 }} />
-                  <h2 style={{ color: "#ffffffff", fontWeight: "bold", position: "absolute", left: "8vw", top: "1vh" }}>Add College</h2>
+                  <img
+                    src={addcollegeIcon}
+                    alt="addcollege"
+                    className="addicon"
+                    style={{
+                      width: "90px",
+                      height: "90px",
+                      position: "absolute",
+                      left: "2.8vw",
+                      top: "0vw",
+                      zIndex: 3,
+                    }}
+                  />
+                  <h2
+                    style={{
+                      color: "#ffffffff",
+                      fontWeight: "bold",
+                      position: "absolute",
+                      left: "8vw",
+                      top: "1vh",
+                    }}
+                  >
+                    Add College
+                  </h2>
                 </div>
 
                 <form onSubmit={handleAddCollege}>
-                  <label style={{ color: "#2E3070", fontWeight: "bold", position: "absolute", left: "37vw", top: "32.5vh" }}>College Code:</label>
-                  <input   placeholder="eg.CCS" className="addid" type="text" value={newCollege.collegecode} onChange={(e) => setNewCollege({ ...newCollege, collegecode: e.target.value })} />
+                  <label
+                    style={{
+                      color: "#2E3070",
+                      fontWeight: "bold",
+                      position: "absolute",
+                      left: "37vw",
+                      top: "32.5vh",
+                    }}
+                  >
+                    College Code:
+                  </label>
+                  <input
+                    placeholder="eg.CCS"
+                    className="addid"
+                    type="text"
+                    value={newCollege.collegecode}
+                    onChange={(e) =>
+                      setNewCollege({
+                        ...newCollege,
+                        collegecode: e.target.value,
+                      })
+                    }
+                  />
 
                   <br />
-                  <label style={{ color: "#2E3070", fontWeight: "bold", position: "absolute", left: "37vw", top: "40.5vh" }}>College Name:</label>
-                  <input   placeholder="eg.College of Computer Studies"  className="addfirst" type="text" value={newCollege.collegename} onChange={(e) => setNewCollege({ ...newCollege, collegename: e.target.value })} />
+                  <label
+                    style={{
+                      color: "#2E3070",
+                      fontWeight: "bold",
+                      position: "absolute",
+                      left: "37vw",
+                      top: "40.5vh",
+                    }}
+                  >
+                    College Name:
+                  </label>
+                  <input
+                    placeholder="eg.College of Computer Studies"
+                    className="addfirst"
+                    type="text"
+                    value={newCollege.collegename}
+                    onChange={(e) =>
+                      setNewCollege({
+                        ...newCollege,
+                        collegename: e.target.value,
+                      })
+                    }
+                  />
 
                   <br />
-                  <button type="button" className="addsub" onClick={()=>{setShowAddConfirm(true)}}>Save</button>
-                  <button type="button" className="canceladd" onClick={() => { setShowAddForm(false); setNewCollege({ collegecode: "", collegename: "" }); }}>Cancel</button>
+                  <button
+                    type="button"
+                    className="addsub"
+                    onClick={() => {
+                      setShowAddConfirm(true);
+                    }}
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    className="canceladd"
+                    onClick={() => {
+                      setShowAddForm(false);
+                      setNewCollege({
+                        collegecode: "",
+                        collegename: "",
+                      });
+                    }}
+                  >
+                    Cancel
+                  </button>
                 </form>
               </div>
             </div>
@@ -539,26 +848,34 @@ const validateCollege = (college, existingColleges) => {
             <div className="confirm-modal-overlay">
               <div className="confirm-modal-content">
                 <h3 style={{ color: "#2E3070" }}>Warning!</h3>
-                  <p
-        style={{
-          color: deleteMessage.startsWith("Are you sure")
-            ? "#2E3070"
-            : deleteMessage.startsWith("")
-            ? "#2E3070"
-            : "#2E3070",
-          fontWeight: "bold",
-        }}
-      >
-        {deleteMessage}
-      </p>
+                <p
+                  style={{
+                    color: "#2E3070",
+                    fontWeight: "bold",
+                  }}
+                >
+                  {deleteMessage}
+                </p>
                 {deleteMessage.startsWith("Are you sure") ? (
                   <div className="confirm-modal-buttons">
-                    <button onClick={confirmDelete} className="yes-btn">Yes</button>
-                    <button onClick={() => setShowDeleteConfirm(false)} className="no-btn">No</button>
+                    <button onClick={confirmDelete} className="yes-btn">
+                      Yes
+                    </button>
+                    <button
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className="no-btn"
+                    >
+                      No
+                    </button>
                   </div>
                 ) : (
                   <div className="confirm-modal-buttons">
-                    <button onClick={() => setShowDeleteConfirm(false)} className="yes-btn">OK</button>
+                    <button
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className="yes-btn"
+                    >
+                      OK
+                    </button>
                   </div>
                 )}
               </div>
@@ -573,66 +890,71 @@ const validateCollege = (college, existingColleges) => {
           </div>
         </>
       )}
-       {showAddConfirm && (
-  <div className="confirm-modal-overlay">
-    <div className="confirm-modal-content">
-      <h3 style={{ color: "#2E3070" }}>Add College</h3>
-      <h5 style={{ color: "#2E3070" }}>Are you sure you want to add this College?</h5>
 
-      <div className="confirm-modal-buttons">
-        <button
-        style={{ backgroundColor: "#2E3070" }}
-          className="yes-btn "
-          onClick={() => {
-            setShowAddConfirm(false);
-           handleAddCollege({ preventDefault: () => {} });
+      {/* Add Confirm */}
+      {showAddConfirm && (
+        <div className="confirm-modal-overlay">
+          <div className="confirm-modal-content">
+            <h3 style={{ color: "#2E3070" }}>Add College</h3>
+            <h5 style={{ color: "#2E3070" }}>
+              Are you sure you want to add this College?
+            </h5>
 
-          }}
-        >
-          Yes
-        </button>
+            <div className="confirm-modal-buttons">
+              <button
+                style={{ backgroundColor: "#2E3070" }}
+                className="yes-btn "
+                onClick={() => {
+                  setShowAddConfirm(false);
+                  handleAddCollege({ preventDefault: () => {} });
+                }}
+              >
+                Yes
+              </button>
 
-        <button
-          className="no-btn"
-          onClick={() => setShowAddConfirm(false)}
-        >
-          No
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-{showEditConfirm && (
-  <div className="confirm-modal-overlay">
-    <div className="confirm-modal-content">
-      <h3 style={{ color: "#2E3070" }}>Edit College</h3>
-      <h5 style={{ color: "#2E3070" }}>Are you sure you want to save changes?</h5>
+              <button
+                className="no-btn"
+                onClick={() => setShowAddConfirm(false)}
+              >
+                No
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-      <div className="confirm-modal-buttons">
-        <button
-        
-          className="yes-btn"
-           style={{ backgroundColor: "#2E3070" }}
-          onClick={async () => {
-            setShowEditConfirm(false);
-            await handleEditSave({ preventDefault: () => {} });
-            setShowEditForm(false); // close edit form
-          }}
-        >
-          Yes
-        </button>
+      {/* Edit Confirm */}
+      {showEditConfirm && (
+        <div className="confirm-modal-overlay">
+          <div className="confirm-modal-content">
+            <h3 style={{ color: "#2E3070" }}>Edit College</h3>
+            <h5 style={{ color: "#2E3070" }}>
+              Are you sure you want to save changes?
+            </h5>
 
-        <button
-          className="no-btn"
-          onClick={() => setShowEditConfirm(false)}
-        >
-          No
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+            <div className="confirm-modal-buttons">
+              <button
+                className="yes-btn"
+                style={{ backgroundColor: "#2E3070" }}
+                onClick={async () => {
+                  setShowEditConfirm(false);
+                  await handleEditSave({ preventDefault: () => {} });
+                  setShowEditForm(false);
+                }}
+              >
+                Yes
+              </button>
 
+              <button
+                className="no-btn"
+                onClick={() => setShowEditConfirm(false)}
+              >
+                No
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

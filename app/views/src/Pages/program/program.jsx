@@ -1,12 +1,12 @@
   import React, { useEffect, useState, useRef } from "react";
-  import "../../assets/styles/program.css"; // reuse same CSS as College
+  import "../../assets/styles/program.css"; 
   import editIcon from "../../assets/images/edit.png";
   import addIcon from "../../assets/images/add.png";
   import deleteIcon from "../../assets/images/delete.png";
   import sortIcon from "../../assets/images/sort.png";
   import arrowIcon from "../../assets/images/arrowdown.png";
-  import searchIcon from "../../assets/images/addstudent.png";
-  import addprogramIcon from "../../assets/images/addsubject.png"; // reuse icon
+  import searchIcon from "../../assets/images/search.png";
+  import addprogramIcon from "../../assets/images/addsubject.png"; 
 
   function Program() {
     const [programs, setPrograms] = useState([]);
@@ -17,7 +17,7 @@
     const [loading, setLoading] = useState(true);
     const tableRef = useRef(null);
 const [colleges, setColleges] = useState([]);
-    // Pagination
+
     const [page, setPage] = useState(1);
     const limit = 9;
     const [hasNext, setHasNext] = useState(false);
@@ -28,7 +28,7 @@ const [colleges, setColleges] = useState([]);
     const [showEditConfirm,setShowEditConfirm] = useState(false);
 const [activeSort, setActiveSort] = useState(null);
 
-    // Edit/Add states
+
     const [showEditForm, setShowEditForm] = useState(false);
     const [editProgram, setEditProgram] = useState({
       programcode: "",
@@ -53,10 +53,10 @@ const [activeSort, setActiveSort] = useState(null);
     };
 
     useEffect(() => {
-  // 1. Load programs (paginated)
+
   fetchPrograms(1);
 
-  // 2. Load ALL colleges for dropdown (no pagination)
+
   fetch("http://127.0.0.1:5000/colleges/all")
     .then((res) => res.json())
     .then((data) => {
@@ -68,7 +68,7 @@ const [activeSort, setActiveSort] = useState(null);
 
 
 
-    // Fetch programs
+
     const fetchPrograms = async (pageNum = 1) => {
       setLoading(true);
       try {
@@ -93,17 +93,16 @@ const [activeSort, setActiveSort] = useState(null);
       fetchPrograms(1);
     }, []);
 
-    // Pagination
    const handleNext = () => {
   if (!hasNext) return;
 
-  // If searching → keep search filter
+
   if (searchTerm.trim()) {
     handleSearchSubmit({ preventDefault: () => {} }, page + 1);
     return;
   }
 
-  // If sorting → keep sorted list
+
   if (activeSort) {
     fetch(`http://127.0.0.1:5000/programs/sort?key=${activeSort}&page=${page + 1}`)
       .then((res) => res.json())
@@ -121,13 +120,13 @@ const [activeSort, setActiveSort] = useState(null);
 const handlePrev = () => {
   if (page <= 1) return;
 
-  // Searching
+
   if (searchTerm.trim()) {
     handleSearchSubmit({ preventDefault: () => {} }, page - 1);
     return;
   }
 
-  // Sorting
+
   if (activeSort) {
     fetch(`http://127.0.0.1:5000/programs/sort?key=${activeSort}&page=${page - 1}`)
       .then((res) => res.json())
@@ -143,7 +142,7 @@ const handlePrev = () => {
 };
 
 
-    // Sort
+
 const handleSort = (key) => {
   setActiveSort(key === "default" ? null : key);
 
@@ -179,7 +178,7 @@ const handleSort = (key) => {
   const q = searchTerm.trim();
 
   if (!q) {
-    fetchPrograms(1); // fallback to normal programs if search is empty
+    fetchPrograms(1); 
     return;
   }
 
@@ -197,7 +196,7 @@ const handleSort = (key) => {
 };
 
 
-    // Delete
+   
     const handleDelete = () => {
       if (!selectedRow) {
         setDeleteMessage("⚠️ Please select a program to delete.");
@@ -214,7 +213,7 @@ const handleSort = (key) => {
   try {
     console.log(" Checking students enrolled in:", selectedRow.programcode);
 
-    // ✅ Fetch only students enrolled in this program
+    
     const res = await fetch(
       `http://127.0.0.1:5000/students/by-program/${selectedRow.programcode}`
     );
@@ -230,7 +229,7 @@ const handleSort = (key) => {
 
     const studentsArray = data.students || [];
 
-    // ✅ If there are students, block delete
+
     if (studentsArray.length > 0) {
       setDeleteMessage(
         ` Cannot delete program '${selectedRow.programcode}' because there are students enrolled in it.`
@@ -238,7 +237,7 @@ const handleSort = (key) => {
       return;
     }
 
-    // ✅ Proceed with delete if no students are enrolled
+
     const deleteRes = await fetch(
       `http://127.0.0.1:5000/programs/${selectedRow.programcode}`,
       { method: "DELETE" }
@@ -263,7 +262,7 @@ const handleSort = (key) => {
 
 
 
-    // Edit
+
     const [originalProgramCode, setOriginalProgramCode] = useState("");
 
     const handleEdit = () => {
@@ -298,10 +297,8 @@ const handleSort = (key) => {
 };
 
 
-    // Add
- // Validation for adding a program
 const validateProgram = (program, existingPrograms) => {
-  // Check for empty fields
+ 
   for (const [key, value] of Object.entries(program)) {
     if (!String(value).trim()) {
       alert(`${key} is required`);
@@ -312,13 +309,13 @@ const validateProgram = (program, existingPrograms) => {
   const programCodeLower = program.programcode.toLowerCase();
   const programNameLower = program.programname.toLowerCase();
 
-  // Check for duplicate program code (case-insensitive)
+ 
   if (existingPrograms.some((p) => p.programcode.toLowerCase() === programCodeLower)) {
     alert("A program with this code already exists.");
     return false;
   }
 
-  // Check for duplicate program name (case-insensitive)
+
   if (existingPrograms.some((p) => p.programname.toLowerCase() === programNameLower)) {
     alert("A program with this name already exists.");
     return false;

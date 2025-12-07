@@ -35,11 +35,19 @@ def add_student():
     profile_url = data.get("profile_url", None)
     data["profile_url"] = profile_url
 
+    # 🔒 BACKEND DUPLICATE CHECKS
+    if StudentModel.id_exists(data["IdNumber"]):
+        return jsonify({"error": "A student with this ID Number already exists."}), 400
+
+    if StudentModel.name_exists(data["FirstName"], data["LastName"]):
+        return jsonify({"error": "A student with the same First and Last name already exists."}), 400
+
     try:
         StudentModel.add_student(data)
         return jsonify({"message": "Student added successfully"}), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 
 
@@ -95,13 +103,22 @@ def sort_students():
 def update_student(id):
     data = request.json
 
-    required_fields = ["FirstName", "LastName", "YearLevel", "Gender", "ProgramCode"]
+    # For edits we ALSO require IdNumber, because you allow editing it in the UI
+    required_fields = ["IdNumber", "FirstName", "LastName", "YearLevel", "Gender", "ProgramCode"]
     for field in required_fields:
         if not data.get(field) or str(data.get(field)).strip() == "":
             return jsonify({"error": f"{field} is required"}), 400
 
-
     data["profile_url"] = data.get("profile_url")
+
+    new_id = data["IdNumber"]
+
+    # 🔒 BACKEND DUPLICATE CHECKS (ignore the current student by id)
+    if StudentModel.id_exists(new_id, exclude_id=id):
+        return jsonify({"error": "A student with this ID Number already exists."}), 400
+
+    if StudentModel.name_exists(data["FirstName"], data["LastName"], exclude_id=id):
+        return jsonify({"error": "A student with the same First and Last name already exists."}), 400
 
     try:
         updated = StudentModel.update_student(id, data)
