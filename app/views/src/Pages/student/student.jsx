@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { supabase } from "../../services/supabase";
+import { supabase } from "../../../services/supabase";
 
 import "../../assets/styles/student.css";
 import editIcon from "../../assets/images/edit.png";
@@ -11,9 +11,7 @@ import searchIcon from "../../assets/images/search.png";
 import addstud from "../../assets/images/addstudent.png";
 import defprofile from "../../assets/images/defprofile.png";
 
-// =========================
-// Image upload restrictions
-// =========================
+
 const MAX_IMAGE_SIZE_MB = 2;
 const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
 
