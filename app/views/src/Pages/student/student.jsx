@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { supabase } from "../../../services/supabase";
+import { supabase } from "../../../../services/supabase";
 
 import "../../assets/styles/student.css";
 import editIcon from "../../assets/images/edit.png";
