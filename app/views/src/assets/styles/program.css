@@ -251,7 +251,7 @@ td div:hover {
   border: 2px solid #E7E7E7;
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
-  overflow: visible; /
+  overflow: visible; 
 }
 
 .table-container table {

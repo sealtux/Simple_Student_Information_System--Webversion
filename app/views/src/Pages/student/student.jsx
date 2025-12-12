@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { supabase } from "../../../../services/supabase";
+import { supabase } from "../../services/supabase";
 
 import "../../assets/styles/student.css";
 import editIcon from "../../assets/images/edit.png";
@@ -49,6 +49,13 @@ function Student() {
   const [showAddConfirm, setShowAddConfirm] = useState(false);
   const [showEditConfirm, setShowEditConfirm] = useState(false);
   const [activeSort, setActiveSort] = useState(null);
+const [filterYearLevel, setFilterYearLevel] = useState("");
+const [filterGender, setFilterGender] = useState("");
+const [filterProgram, setFilterProgram] = useState("");
+const hasActiveFilters =
+  filterYearLevel !== "" || filterGender !== "" || filterProgram !== "";
+  const [showFilterModal, setShowFilterModal] = useState(false);
+
 
   // profile modal state
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -120,6 +127,47 @@ function Student() {
     }
   };
 
+const fetchFilteredStudents = async (
+  pageNum = 1,
+  queryOverride = null,
+  sortOverride = null
+) => {
+  const query = queryOverride !== null ? queryOverride : searchTerm.trim();
+  const sortKey = sortOverride !== null ? sortOverride : activeSort;
+
+  setLoading(true);
+  try {
+    const params = new URLSearchParams();
+    params.append("page", pageNum);
+
+    if (query) params.append("q", query);
+    if (filterYearLevel) params.append("yearlevel", filterYearLevel);
+    if (filterGender) params.append("gender", filterGender);
+    if (filterProgram) params.append("programcode", filterProgram);
+    if (sortKey) params.append("sortkey", sortKey); 
+
+    const res = await fetch(
+      `http://127.0.0.1:5000/students/filter?${params.toString()}`
+    );
+    const data = await res.json();
+
+    setStudents(data.students || []);
+    setPage(pageNum);
+    setHasNext(data.has_next || false);
+  } catch (err) {
+    console.error("Filter/search error:", err);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+const applyFilters = (pageNum = 1) => {
+  // Use the unified search/filter/sort handler
+  handleSearchSubmit(null, pageNum);
+};
+
+
   // Fetch ALL students (for validation, independent of search/pagination)
   const fetchAllStudents = async () => {
     try {
@@ -151,39 +199,46 @@ function Student() {
   }, []);
 
   // Pagination handlers
-  const handleNext = () => {
-    if (!hasNext) return;
+const handleNext = () => {
+  if (!hasNext) return;
 
-    if (searchTerm.trim() !== "") {
-      handleSearchSubmit(null, page + 1);
-      return;
-    }
+  const query = searchTerm.trim();
 
-    if (activeSort) {
-      fetch(
-        `http://127.0.0.1:5000/students/sort?key=${activeSort}&page=${
-          page + 1
-        }`
-      )
-        .then((res) => res.json())
-        .then((data) => {
-          setStudents(data.students || []);
-          setHasNext(data.has_next || false);
-          setPage(page + 1);
-        });
-      return;
-    }
+  // If there are filters OR a search query, use the filter/search pipeline
+  if (hasActiveFilters || query !== "") {
+    handleSearchSubmit(null, page + 1);
+    return;
+  }
 
-    fetchStudents(page + 1);
-  };
+  if (activeSort) {
+    fetch(
+      `http://127.0.0.1:5000/students/sort?key=${activeSort}&page=${
+        page + 1
+      }`
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        setStudents(data.students || []);
+        setHasNext(data.has_next || false);
+        setPage(page + 1);
+      });
+    return;
+  }
+
+  fetchStudents(page + 1);
+};
+
 
   const handlePrev = () => {
-    if (page <= 1) return;
+  if (page <= 1) return;
 
-    if (searchTerm.trim() !== "") {
-      handleSearchSubmit(null, page - 1);
-      return;
-    }
+  const query = searchTerm.trim();
+
+  if (hasActiveFilters || query !== "") {
+    handleSearchSubmit(null, page - 1);
+    return;
+  }
+
 
     if (activeSort) {
       fetch(
@@ -203,71 +258,69 @@ function Student() {
     fetchStudents(page - 1);
   };
 
-  // Sorting
-  const handleSort = (key) => {
-    setActiveSort(key === "default" ? null : key);
+const handleSort = (key) => {
+  const sortKey = key === "default" ? null : key;
+  setActiveSort(sortKey);
 
-    if (key === "default") {
-      fetchStudents(1);
-      setShowSortMenu(false);
-      return;
-    }
+  // Reset sort (back to default)
+  if (sortKey === null) {
+    // If we have filters or search, just reload through unified handler
+    handleSearchSubmit(null, 1, null);
+    setShowSortMenu(false);
+    return;
+  }
 
-    setStudents([]);
-    setLoading(true);
+  // If there are filters OR a search query
+  // → use the unified pipeline WITH the new sortKey
+  if (hasActiveFilters || searchTerm.trim() !== "") {
+    handleSearchSubmit(null, 1, sortKey); // ✅ pass sortKey explicitly
+    setShowSortMenu(false);
+    return;
+  }
 
-    fetch(
-      `http://127.0.0.1:5000/students/sort?key=${encodeURIComponent(
-        key
-      )}&page=1`
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        const arr = Array.isArray(data) ? data : data.students || [];
-        requestAnimationFrame(() => {
-          setStudents(arr);
-          setHasNext(data.has_next || false);
-          setPage(1);
-          setLoading(false);
-        });
-      })
-      .catch((err) => {
-        console.error("Error fetching sorted students:", err);
-        setLoading(false);
-      })
-      .finally(() => setShowSortMenu(false));
-  };
+  // No filters & no search → keep your existing /sort endpoint
+  setStudents([]);
+  setLoading(true);
 
-  const handleSearchSubmit = async (e, pageNum = 1) => {
-    if (e) e.preventDefault();
-
-    const query = searchTerm.trim();
-
-    if (query === "") {
-      fetchStudents(pageNum);
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const res = await fetch(
-        `http://127.0.0.1:5000/students/search?q=${encodeURIComponent(
-          query
-        )}&page=${pageNum}`
-      );
-
-      const data = await res.json();
-
-      setStudents(data.students || []);
-      setPage(pageNum);
+  fetch(
+    `http://127.0.0.1:5000/students/sort?key=${encodeURIComponent(
+      sortKey
+    )}&page=1`
+  )
+    .then((res) => res.json())
+    .then((data) => {
+      const arr = Array.isArray(data) ? data : data.students || [];
+      setStudents(arr);
       setHasNext(data.has_next || false);
-    } catch (err) {
-      console.error("Search error:", err);
-    } finally {
+      setPage(1);
+    })
+    .catch((err) => {
+      console.error("Error fetching sorted students:", err);
+    })
+    .finally(() => {
       setLoading(false);
-    }
-  };
+      setShowSortMenu(false);
+    });
+};
+
+
+
+  const handleSearchSubmit = (e, pageNum = 1, sortOverride = null) => {
+  if (e) e.preventDefault();
+
+  const query = searchTerm.trim();
+  const sortKey = sortOverride !== null ? sortOverride : activeSort;
+
+  // If there is ANY search text OR ANY filters OR ANY sort,
+  // always use /students/filter
+  if (query !== "" || hasActiveFilters || sortKey) {
+    fetchFilteredStudents(pageNum, query, sortKey);
+    return;
+  }
+
+  // Otherwise, just use the default paginated list
+  fetchStudents(pageNum);
+};
 
   // Delete student
   const handleDelete = () => {
@@ -1891,6 +1944,211 @@ function Student() {
               </div>
             </div>
           )}
+
+      {/*   
+<div
+  className="filters-wrapper"
+  style={{
+    position: "absolute",
+    display: "flex",
+    alignItems: "center",
+    marginLeft: "220px",
+    top: "-70px",
+    left: "200px",
+    zIndex: 5,
+  }}
+>
+  <button
+    type="button"
+    onClick={() => setShowFilterModal(true)}
+    style={{
+      padding: "6px 14px",
+      borderRadius: "6px",
+      border: "none",
+      backgroundColor: "#4956AD",
+      color: "#fff",
+      cursor: "pointer",
+      fontSize: "0.9rem",
+      fontWeight: "500",
+      boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+    }}
+  >
+    Filters ▾
+  </button>
+</div>
+
+*/}
+
+{/*Modal changes*/}
+{showFilterModal && (  
+  <div
+    className="filters-modal-overlay"
+    onClick={() => setShowFilterModal(false)}
+    style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: "100vw",
+      height: "100vh",
+      backgroundColor: "rgba(0,0,0,0.4)",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 999,
+    }}
+  >
+    <div
+      className="filters-modal"
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        backgroundColor: "#fff",
+        borderRadius: "10px",
+        padding: "20px 24px",
+        minWidth: "320px",
+        maxWidth: "420px",
+        boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
+        color: "#2E3070",
+      }}
+    >
+      <h3 style={{ marginBottom: "12px" }}>Filter Students</h3>
+      <p
+        style={{
+          fontSize: "0.85rem",
+          marginTop: 0,
+          marginBottom: "16px",
+          color: "#666",
+        }}
+      >
+        Choose filters and click <strong>Apply</strong>.
+      </p>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        <label style={{ fontSize: "0.85rem" }}>
+          Gender
+          <select
+            value={filterGender}
+            onChange={(e) => setFilterGender(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "6px 10px",
+              borderRadius: "6px",
+              border: "1px solid #D0D0D0",
+              fontSize: "0.9rem",
+              color: "#2E3070",
+              backgroundColor: "#fff",
+              marginTop: "4px",
+            }}
+          >
+            <option value="">All Genders</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+          </select>
+        </label>
+
+        <label style={{ fontSize: "0.85rem" }}>
+          Year Level
+          <select
+            value={filterYearLevel}
+            onChange={(e) => setFilterYearLevel(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "6px 10px",
+              borderRadius: "6px",
+              border: "1px solid #D0D0D0",
+              fontSize: "0.9rem",
+              color: "#2E3070",
+              backgroundColor: "#fff",
+              marginTop: "4px",
+            }}
+          >
+            <option value="">All Years</option>
+            <option value="1st Year">1st Year</option>
+            <option value="2nd Year">2nd Year</option>
+            <option value="3rd Year">3rd Year</option>
+            <option value="4th Year">4th Year</option>
+          </select>
+        </label>
+
+        <label style={{ fontSize: "0.85rem" }}>
+          Program
+          <select
+            value={filterProgram}
+            onChange={(e) => setFilterProgram(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "6px 10px",
+              borderRadius: "6px",
+              border: "1px solid #D0D0D0",
+              fontSize: "0.9rem",
+              color: "#2E3070",
+              backgroundColor: "#fff",
+              marginTop: "4px",
+            }}
+          >
+            <option value="">All Programs</option>
+            {programs.map((prog) => (
+              <option key={prog.programcode} value={prog.programcode}>
+                {prog.programcode}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          gap: "8px",
+          marginTop: "18px",
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => {
+            setFilterGender("");
+            setFilterYearLevel("");
+            setFilterProgram("");
+            applyFilters(1);
+            setShowFilterModal(false);
+          }}
+          style={{
+            padding: "6px 12px",
+            borderRadius: "6px",
+            border: "1px solid #D0D0D0",
+            backgroundColor: "#f5f5f5",
+            color: "#2E3070",
+            cursor: "pointer",
+            fontSize: "0.85rem",
+          }}
+        >
+          Clear
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            applyFilters(1);
+            setShowFilterModal(false);
+          }}
+          style={{
+            padding: "6px 14px",
+            borderRadius: "6px",
+            border: "none",
+            backgroundColor: "#4956AD",
+            color: "#fff",
+            cursor: "pointer",
+            fontSize: "0.9rem",
+            fontWeight: "500",
+          }}
+        >
+          Apply
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
 
           {/* footer bar */}
           <div className="bottombar">

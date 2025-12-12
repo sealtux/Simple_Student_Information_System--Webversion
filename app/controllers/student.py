@@ -142,3 +142,32 @@ def get_students_by_program(programcode):
 
 
 
+
+@student_bp.route("/filter")
+def filter_students():
+    yearlevel = request.args.get("yearlevel", "").strip() or None
+    gender = request.args.get("gender", "").strip() or None
+    programcode = request.args.get("programcode", "").strip() or None
+    query_text = request.args.get("q", "").strip()
+    sortkey = request.args.get("sortkey", "IdNumber")  # <-- important
+
+    page = int(request.args.get("page", 1))
+    limit = 9
+    offset = (page - 1) * limit
+
+    students = StudentModel.get_students_filtered(
+        yearlevel=yearlevel,
+        gender=gender,
+        programcode=programcode,
+        query_text=query_text,
+        sortkey=sortkey,         # <-- pass sortkey
+        limit=limit + 1,
+        offset=offset,
+    )
+
+    has_next = len(students) > limit
+
+    return jsonify({
+        "students": students[:limit],
+        "has_next": has_next
+    }), 200

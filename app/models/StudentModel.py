@@ -220,3 +220,75 @@ class StudentModel:
         finally:
             cursor.close()
             conn.close()
+
+    @staticmethod
+    def get_students_filtered(
+        yearlevel=None,
+        gender=None,
+        programcode=None,
+        query_text="",
+        sortkey="IdNumber",
+        limit=9,
+        offset=0
+    ):
+        conn = get_connection()
+        cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        try:
+            base_query = """
+                SELECT "IdNumber", "FirstName", "LastName",
+                    "YearLevel", "Gender", "ProgramCode", "profile_url"
+                FROM student
+            """
+            conditions = []
+            params = []
+
+            if yearlevel:
+                conditions.append('"YearLevel" = %s')
+                params.append(yearlevel)
+
+            if gender:
+                conditions.append('"Gender" = %s')
+                params.append(gender)
+
+            if programcode:
+                conditions.append('LOWER("ProgramCode") = LOWER(%s)')
+                params.append(programcode)
+
+            if query_text:
+                q = f"%{query_text}%"
+                conditions.append(
+                    '('
+                    '"IdNumber" ILIKE %s OR '
+                    '"FirstName" ILIKE %s OR '
+                    '"LastName" ILIKE %s OR '
+                    '"YearLevel" ILIKE %s OR '
+                    '"Gender" ILIKE %s OR '
+                    '"ProgramCode" ILIKE %s'
+                    ')'
+                )
+                params.extend([q, q, q, q, q, q])
+
+            if conditions:
+                base_query += " WHERE " + " AND ".join(conditions)
+
+            # validate sortkey to avoid SQL injection
+            valid_columns = {
+                "IdNumber",
+                "FirstName",
+                "LastName",
+                "YearLevel",
+                "Gender",
+                "ProgramCode",
+            }
+            if sortkey not in valid_columns:
+                sortkey = "IdNumber"
+
+            base_query += f' ORDER BY "{sortkey}" LIMIT %s OFFSET %s'
+            params.extend([limit, offset])
+
+            cursor.execute(base_query, params)
+            return cursor.fetchall()
+        finally:
+            cursor.close()
+            conn.close()
+
