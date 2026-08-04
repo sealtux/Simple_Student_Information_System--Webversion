@@ -409,91 +409,156 @@ const confirmDelete = async (e) => {
 const handleEditSave = async (e) => {
   e.preventDefault();
 
+  // Validate before uploading anything
+  if (!validateStudentEdit(editStudent, allStudents, originalIdNumber)) {
+    return;
+  }
+
   let imageUrl = editStudent.profile_url;
+  let newFilePath = null;
 
   try {
-    // 🔥 STEP 1: Upload ONLY if new file exists
+    // Upload only when a new image was selected
     if (
       editStudent.profilePictureFile &&
       editStudent.profilePictureFile instanceof File
     ) {
       const file = editStudent.profilePictureFile;
 
-      const fileName = `${editStudent.IdNumber}.jpg`;
+      const extension =
+        file.name.split(".").pop()?.toLowerCase() || "jpg";
 
-      const { error } = await supabase.storage
+      // Create a new Supabase object every time
+      const fileName = `${editStudent.IdNumber}_${Date.now()}.${extension}`;
+      newFilePath = `profiles/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
         .from("student-images")
-        .upload(`profiles/${fileName}`, file, {
-          upsert: true,
+        .upload(newFilePath, file, {
+          upsert: false,
+          cacheControl: "3600",
+          contentType: file.type,
         });
 
-      if (error) {
-        console.error("UPLOAD ERROR:", error);
-        alert("Image upload failed!");
+      if (uploadError) {
+        console.error("UPLOAD ERROR:", uploadError);
+        alert(`Image upload failed: ${uploadError.message}`);
         return;
       }
 
       const { data: urlData } = supabase.storage
         .from("student-images")
-        .getPublicUrl(`profiles/${fileName}`);
+        .getPublicUrl(newFilePath);
 
       imageUrl = urlData.publicUrl;
     }
 
-    // 🔥 STEP 2: Validate
-    if (!validateStudentEdit(editStudent, allStudents, originalIdNumber))
-      return;
+    const oldImageUrl = editStudent.profile_url;
 
-    // 🔥 STEP 3: Update DB
-    const res = await fetch(
+    // Update PostgreSQL through Flask
+    const response = await fetch(
       `http://127.0.0.1:5000/students/${originalIdNumber}`,
       {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
-          ...editStudent,
+          IdNumber: editStudent.IdNumber,
+          FirstName: editStudent.FirstName,
+          LastName: editStudent.LastName,
+          YearLevel: editStudent.YearLevel,
+          Gender: editStudent.Gender,
+          ProgramCode: editStudent.ProgramCode,
           profile_url: imageUrl,
         }),
       }
     );
 
-    const data = await res.json();
+    const responseText = await response.text();
 
-    if (!res.ok) {
-      throw new Error(data.error || "Update failed");
+    let data = {};
+
+    try {
+      data = responseText ? JSON.parse(responseText) : {};
+    } catch {
+      throw new Error("The backend returned an invalid response.");
     }
 
-    // 🔥 STEP 4: FIX UI STATE
-    setStudents((prev) =>
-      prev.map((s) =>
-        s.IdNumber === originalIdNumber
-          ? { ...s, profile_url: imageUrl }
-          : s
+    if (!response.ok) {
+      // Remove the newly uploaded image if database update failed
+      if (newFilePath) {
+        await supabase.storage
+          .from("student-images")
+          .remove([newFilePath]);
+      }
+
+      throw new Error(data.error || "Student update failed.");
+    }
+
+    const updatedStudent = {
+      ...editStudent,
+      profile_url: imageUrl,
+      profilePictureFile: null,
+    };
+
+    // Update current page
+    setStudents((previousStudents) =>
+      previousStudents.map((student) =>
+        student.IdNumber === originalIdNumber
+          ? updatedStudent
+          : student
       )
     );
 
-    setSelectedRow((prev) =>
-      prev ? { ...prev, profile_url: imageUrl } : prev
+    // Update validation list
+    setAllStudents((previousStudents) =>
+      previousStudents.map((student) =>
+        student.IdNumber === originalIdNumber
+          ? updatedStudent
+          : student
+      )
     );
+
+    setSelectedRow(updatedStudent);
+
+    // Remove the previous image from the current Supabase project
+    if (
+      newFilePath &&
+      oldImageUrl &&
+      oldImageUrl.includes(
+        "cgsuyduqaiwngxhjpklt.supabase.co/storage/v1/object/public/student-images/"
+      )
+    ) {
+      try {
+        const cleanOldUrl = oldImageUrl.split("?")[0];
+        const oldFilePath = cleanOldUrl.split("/student-images/")[1];
+
+        if (oldFilePath && oldFilePath !== newFilePath) {
+          const { error: removeError } = await supabase.storage
+            .from("student-images")
+            .remove([oldFilePath]);
+
+          if (removeError) {
+            console.warn("OLD IMAGE DELETE WARNING:", removeError);
+          }
+        }
+      } catch (removeError) {
+        console.warn("Could not delete the old image:", removeError);
+      }
+    }
+
+    setEditStudent(updatedStudent);
+    setShowEditForm(false);
+    setShowEditConfirm(false);
 
     alert("Student updated successfully!");
 
-    // 🔥 STEP 5: RESET FILE (IMPORTANT FIX)
-    setEditStudent((prev) => ({
-      ...prev,
-      profilePictureFile: null,
-    }));
-
-    // 🔥 STEP 6: SYNC DATA
     await fetchStudents(page);
     await fetchAllStudents();
-
-    // 🔥 STEP 7: CLOSE MODAL
-    setShowEditForm(false);
-    setSelectedRow(null);
-  } catch (err) {
-    console.error(err);
-    alert(err.message);
+  } catch (error) {
+    console.error("EDIT ERROR:", error);
+    alert(error.message || "Student update failed.");
   }
 };
   // =======================
@@ -693,34 +758,48 @@ const saveProfileChanges = async () => {
   if (!selectedRow || !profileDraftFile) return;
 
   try {
-    const fileName = `${selectedRow.IdNumber}.jpg`;
+    const file = profileDraftFile;
+
+    // Preserve the selected file's actual extension
+    const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+
+    // New filename on every upload
+    const fileName = `${selectedRow.IdNumber}_${Date.now()}.${extension}`;
     const filePath = `profiles/${fileName}`;
 
-    // 🔥 UPLOAD (overwrite old image)
-    const { error } = await supabase.storage
+    // STEP 1: Upload as a completely new Supabase object
+    const { error: uploadError } = await supabase.storage
       .from("student-images")
-      .upload(filePath, profileDraftFile, {
-        upsert: true,
+      .upload(filePath, file, {
+        upsert: false,
+        cacheControl: "3600",
+        contentType: file.type,
       });
 
-    if (error) {
-      console.error(error);
-      alert("Image upload failed!");
+    if (uploadError) {
+      console.error("UPLOAD ERROR:", uploadError);
+      alert(`Image upload failed: ${uploadError.message}`);
       return;
     }
 
+    // STEP 2: Get the new public URL
     const { data: urlData } = supabase.storage
       .from("student-images")
       .getPublicUrl(filePath);
 
     const imageUrl = urlData.publicUrl;
 
-    // 🔥 UPDATE BACKEND
-    await fetch(
+    // Keep the previous URL so its old file can be removed afterward
+    const oldImageUrl = selectedRow.profile_url;
+
+    // STEP 3: Update PostgreSQL through Flask
+    const response = await fetch(
       `http://127.0.0.1:5000/students/${selectedRow.IdNumber}`,
       {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           ...selectedRow,
           profile_url: imageUrl,
@@ -728,32 +807,93 @@ const saveProfileChanges = async () => {
       }
     );
 
-    // 🔥 FIX UI STATE (THIS WAS MISSING)
+    const responseText = await response.text();
+
+    let data = {};
+
+    try {
+      data = responseText ? JSON.parse(responseText) : {};
+    } catch {
+      throw new Error("The backend returned an invalid response.");
+    }
+
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to update student profile.");
+    }
+
+    // STEP 4: Update React state
     setSelectedRow((prev) =>
-      prev ? { ...prev, profile_url: imageUrl } : prev
+      prev
+        ? {
+            ...prev,
+            profile_url: imageUrl,
+          }
+        : prev
     );
 
     setStudents((prev) =>
-      prev.map((s) =>
-        s.IdNumber === selectedRow.IdNumber
-          ? { ...s, profile_url: imageUrl }
-          : s
+      prev.map((student) =>
+        student.IdNumber === selectedRow.IdNumber
+          ? {
+              ...student,
+              profile_url: imageUrl,
+            }
+          : student
       )
     );
 
-    // 🔥 CLEAR DRAFT
+    setAllStudents((prev) =>
+      prev.map((student) =>
+        student.IdNumber === selectedRow.IdNumber
+          ? {
+              ...student,
+              profile_url: imageUrl,
+            }
+          : student
+      )
+    );
+
+    // STEP 5: Remove the previous image from the current Supabase project
+    if (
+      oldImageUrl &&
+      oldImageUrl.includes(
+        "cgsuyduqaiwngxhjpklt.supabase.co/storage/v1/object/public/student-images/"
+      )
+    ) {
+      try {
+        const cleanOldUrl = oldImageUrl.split("?")[0];
+        const marker = "/student-images/";
+        const oldFilePath = cleanOldUrl.split(marker)[1];
+
+        if (oldFilePath && oldFilePath !== filePath) {
+          const { error: removeError } = await supabase.storage
+            .from("student-images")
+            .remove([oldFilePath]);
+
+          if (removeError) {
+            console.warn("OLD IMAGE DELETE WARNING:", removeError);
+          }
+        }
+      } catch (deleteError) {
+        console.warn("Could not remove the previous image:", deleteError);
+      }
+    }
+
+    // STEP 6: Clear temporary states
     setProfileDraftFile(null);
     setProfileDraftPreviewUrl(null);
     setProfileDraftDeleted(false);
 
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
 
-    alert("Profile updated successfully!");
+    alert("Profile picture updated successfully!");
   } catch (err) {
-    console.error(err);
-    alert(err.message);
+    console.error("PROFILE UPDATE ERROR:", err);
+    alert(err.message || "Profile update failed.");
   }
-};
+};  
   // Remove profile picture → use default (used when committing delete)
 const handleRemoveProfilePicture = async () => {
   if (!selectedRow) return;
