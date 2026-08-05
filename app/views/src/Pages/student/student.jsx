@@ -337,56 +337,84 @@ const handleSort = (key) => {
   };
 
 const confirmDelete = async (e) => {
-  // 🔥 prevent accidental form submit / navigation
   if (e) e.preventDefault();
 
   try {
-    const id = selectedRow?.IdNumber;
-    if (!id) return;
+    const student = selectedRow;
+    const id = student?.IdNumber;
 
-    // 🔥 STEP 1: DELETE IMAGE FROM SUPABASE STORAGE
-    const filePath = `profiles/${id}.jpg`;
+    if (!student || !id) return;
 
-    const { error: storageError } = await supabase.storage
-      .from("student-images")
-      .remove([filePath]);
+    // Extract the actual Supabase file path from profile_url
+    let filePath = null;
 
-    if (storageError) {
-      console.warn("Image delete warning:", storageError);
+    if (
+      student.profile_url &&
+      student.profile_url.includes(
+        "cgsuyduqaiwngxhjpklt.supabase.co/storage/v1/object/public/student-images/"
+      )
+    ) {
+      const cleanUrl = student.profile_url.split("?")[0];
+      filePath = cleanUrl.split("/student-images/")[1];
     }
 
-    // 🔥 STEP 2: DELETE FROM BACKEND
-    const res = await fetch(`http://127.0.0.1:5000/students/${id}`, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    // Delete the actual image from Supabase
+    if (filePath) {
+      const { data: deletedFiles, error: storageError } =
+        await supabase.storage
+          .from("student-images")
+          .remove([filePath]);
 
-    const data = await res.json();
+      if (storageError) {
+        console.error("SUPABASE DELETE ERROR:", storageError);
+        alert(`Image delete failed: ${storageError.message}`);
+        return;
+      }
 
-    if (!res.ok) {
-      setDeleteMessage(data.error || "Failed to delete student.");
-      return;
+      console.log("Deleted Supabase files:", deletedFiles);
     }
 
-    // 🔥 STEP 3: UPDATE UI IMMEDIATELY (no waiting needed)
+    // Delete student from PostgreSQL
+    const response = await fetch(
+      `http://127.0.0.1:5000/students/${id}`,
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const responseText = await response.text();
+
+    let data = {};
+
+    try {
+      data = responseText ? JSON.parse(responseText) : {};
+    } catch {
+      throw new Error("The backend returned an invalid response.");
+    }
+
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to delete student.");
+    }
+
     setStudents((prev) =>
-      prev.filter((s) => s.IdNumber !== id)
+      prev.filter((student) => student.IdNumber !== id)
     );
 
     setAllStudents((prev) =>
-      prev.filter((s) => s.IdNumber !== id)
+      prev.filter((student) => student.IdNumber !== id)
     );
 
     setSelectedRow(null);
     setShowDeleteConfirm(false);
     setShowProfileModal(false);
 
-    alert("Student deleted successfully!");
-  } catch (err) {
-    console.error(err);
-    setDeleteMessage("Failed to delete student.");
+    alert("Student and profile image deleted successfully!");
+  } catch (error) {
+    console.error("DELETE ERROR:", error);
+    setDeleteMessage(error.message || "Failed to delete student.");
   }
 };
 
@@ -894,30 +922,44 @@ const saveProfileChanges = async () => {
     alert(err.message || "Profile update failed.");
   }
 };  
-  // Remove profile picture → use default (used when committing delete)
 const handleRemoveProfilePicture = async () => {
   if (!selectedRow) return;
 
   try {
-    // 🔥 STEP 1: BUILD CONSISTENT FILE PATH (NO TIMESTAMP SYSTEM)
-    const filePath = `profiles/${selectedRow.IdNumber}.jpg`;
+    let filePath = null;
 
-    // 🗑️ DELETE FROM SUPABASE STORAGE
-    const { error: storageError } = await supabase.storage
-      .from("student-images")
-      .remove([filePath]);
-
-    if (storageError) {
-      console.warn("Storage delete warning:", storageError);
-      // continue anyway (file might not exist)
+    // Extract the real filename, including timestamp and extension
+    if (
+      selectedRow.profile_url &&
+      selectedRow.profile_url.includes(
+        "cgsuyduqaiwngxhjpklt.supabase.co/storage/v1/object/public/student-images/"
+      )
+    ) {
+      const cleanUrl = selectedRow.profile_url.split("?")[0];
+      filePath = cleanUrl.split("/student-images/")[1];
     }
 
-    // 🔥 STEP 2: UPDATE POSTGRESQL (REMOVE IMAGE URL)
-    const res = await fetch(
+    // Delete image from Supabase
+    if (filePath) {
+      const { error: storageError } = await supabase.storage
+        .from("student-images")
+        .remove([filePath]);
+
+      if (storageError) {
+        console.error("SUPABASE DELETE ERROR:", storageError);
+        alert(`Image delete failed: ${storageError.message}`);
+        return;
+      }
+    }
+
+    // Set profile_url to null in PostgreSQL
+    const response = await fetch(
       `http://127.0.0.1:5000/students/${selectedRow.IdNumber}`,
       {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           ...selectedRow,
           profile_url: null,
@@ -925,22 +967,25 @@ const handleRemoveProfilePicture = async () => {
       }
     );
 
-    const data = await res.json();
+    const data = await response.json();
 
-    if (!res.ok) {
-      throw new Error(data.error || "Failed to update student");
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to update student.");
     }
 
-    // 🔥 STEP 3: REFRESH DATA
-    await fetchStudents(page);
-    await fetchAllStudents();
-
-    // 🔥 STEP 4: FIX UI STATE
     setStudents((prev) =>
-      prev.map((s) =>
-        s.IdNumber === selectedRow.IdNumber
-          ? { ...s, profile_url: null }
-          : s
+      prev.map((student) =>
+        student.IdNumber === selectedRow.IdNumber
+          ? { ...student, profile_url: null }
+          : student
+      )
+    );
+
+    setAllStudents((prev) =>
+      prev.map((student) =>
+        student.IdNumber === selectedRow.IdNumber
+          ? { ...student, profile_url: null }
+          : student
       )
     );
 
@@ -949,9 +994,9 @@ const handleRemoveProfilePicture = async () => {
     );
 
     alert("Profile picture removed successfully!");
-  } catch (err) {
-    console.error(err);
-    alert("Error removing profile picture.");
+  } catch (error) {
+    console.error("REMOVE PROFILE ERROR:", error);
+    alert(error.message || "Error removing profile picture.");
   }
 };
 
