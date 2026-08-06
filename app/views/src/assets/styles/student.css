@@ -113,21 +113,7 @@ table td, table th {
   top: -30vw;
 }
 
-.deletebut{
-   position: absolute;
-  background-color: #ffffff;
-  color:#2E3070;
-  border: 3px solid #2E3070;
-  font-size: 20px;
-  height: 49px;
-  font-weight: bold;
-  padding-top: 5px;
-  padding-left: 40px;
-  width: 170px;
-  left: 10.5vw;
-    outline: none;
-  top: -30vw;
-}
+
 .informationtext {
   position: absolute;
   color: #ffffff;
@@ -511,25 +497,41 @@ background-color: #F2F2FF;
 /* ----------------------- DELETE BUTTON STYLE ----------------------- */
 .deletebut {
   position: absolute;
-  background-color: #ffffff;
-  color: #2E3070;
-  border: 3px solid #2E3070;
-  font-size: 20px;
-  height: 49px;
-  font-weight: bold;
-  padding-top: 5px;
-  padding-left: 40px;
-  width: 170px;
-  left: 10.5vw;
-  outline: none;
+  left: 10vw;
   top: -30vw;
-  cursor: pointer;
+
+  width: 0px;
+  height: 49px;
+  padding: 0;
+  align-items: center;
+
+  background-color: #2E3070;
+  color: #ffffff;
+  border: 3px solid #2E3070;
   border-radius: 6px;
-  transition: background 0.2s ease, transform 0.1s ease;
+
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  outline: none;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  box-sizing: border-box;
+}
+
+.deletebut img {
+  position: static !important;
+  width: 30px;
+  height: 30px;
+  display: block;
+  margin: 0;
 }
 
 .deletebut:hover {
-  
   transform: scale(1.03);
 }
 

@@ -5,38 +5,39 @@ import psycopg2.extras
 class CollegeModel:
     @staticmethod
     def get_college(limit=9, offset=0):
-        conn = get_connection()
-        cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        try:
-            cursor.execute("""
-                SELECT "collegecode", "collegename"
-                FROM college
-                LIMIT %s OFFSET %s
-            """, (limit, offset))
-            return cursor.fetchall()
-        finally:
-            cursor.close()
-            conn.close()
+        return CollegeModel.filter_colleges(
+            query="",
+            sort_key=None,
+            direction=None,
+            limit=limit,
+            offset=offset,
+        )
 
     @staticmethod
     def add_college(collegecode, collegename):
         conn = get_connection()
         cursor = conn.cursor()
+
         try:
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO college ("collegecode", "collegename")
                 VALUES (%s, %s)
-            """, (collegecode, collegename))
+                """,
+                (collegecode, collegename),
+            )
+
             conn.commit()
         finally:
             cursor.close()
             conn.close()
 
-    # 🔹 Check if a college code exists (optional: ignore one code)
+    # Check if a college code exists
     @staticmethod
     def college_code_exists(collegecode, exclude_code=None):
         conn = get_connection()
         cursor = conn.cursor()
+
         try:
             if exclude_code:
                 cursor.execute(
@@ -59,16 +60,18 @@ class CollegeModel:
                     """,
                     (collegecode,),
                 )
+
             return cursor.fetchone() is not None
         finally:
             cursor.close()
             conn.close()
 
-    # 🔹 Check if a college name exists (optional: ignore one code)
+    # Check if a college name exists
     @staticmethod
     def college_name_exists(collegename, exclude_code=None):
         conn = get_connection()
         cursor = conn.cursor()
+
         try:
             if exclude_code:
                 cursor.execute(
@@ -91,6 +94,7 @@ class CollegeModel:
                     """,
                     (collegename,),
                 )
+
             return cursor.fetchone() is not None
         finally:
             cursor.close()
@@ -104,26 +108,34 @@ class CollegeModel:
         """
         conn = get_connection()
         cursor = conn.cursor()
+
         try:
-            # 1️⃣ Update the college itself
-            cursor.execute("""
+            # Update the college itself
+            cursor.execute(
+                """
                 UPDATE college
                 SET "collegecode" = %s,
                     "collegename" = %s
                 WHERE "collegecode" = %s
-            """, (collegecode, collegename, original_code))
+                """,
+                (collegecode, collegename, original_code),
+            )
 
             updated_rows = cursor.rowcount
 
-            # 2️⃣ Then update all programs that reference it
+            # Update programs that reference the old college code
             if updated_rows > 0 and collegecode != original_code:
-                cursor.execute("""
+                cursor.execute(
+                    """
                     UPDATE program
                     SET "collegecode" = %s
                     WHERE "collegecode" = %s
-                """, (collegecode, original_code))
+                    """,
+                    (collegecode, original_code),
+                )
 
             conn.commit()
+
             return updated_rows > 0
         finally:
             cursor.close()
@@ -133,78 +145,181 @@ class CollegeModel:
     def delete_college(collegecode):
         conn = get_connection()
         cursor = conn.cursor()
+
         try:
-            # 1️⃣ Check if there are programs using this collegecode
-            cursor.execute("""
+            # Check whether programs use this college code
+            cursor.execute(
+                """
                 SELECT 1
                 FROM program
                 WHERE "collegecode" = %s
                 LIMIT 1
-            """, (collegecode,))
+                """,
+                (collegecode,),
+            )
 
             if cursor.fetchone():
-                # ❌ There is at least one program linked to this college
                 return False
 
-            # 2️⃣ Safe to delete
-            cursor.execute("""
+            cursor.execute(
+                """
                 DELETE FROM college
                 WHERE "collegecode" = %s
-            """, (collegecode,))
+                """,
+                (collegecode,),
+            )
+
             conn.commit()
+
             return True
         finally:
             cursor.close()
             conn.close()
 
+    # Combined search, sorting, and pagination
     @staticmethod
-    def search_college(query, limit=9, offset=0):
+    def filter_colleges(
+        query="",
+        sort_key=None,
+        direction=None,
+        limit=9,
+        offset=0,
+    ):
+        valid_sort_keys = {
+            "collegecode",
+            "collegename",
+        }
+
+        valid_directions = {
+            "asc",
+            "desc",
+        }
+
+        if sort_key not in valid_sort_keys:
+            sort_key = None
+
+        if direction:
+            direction = str(direction).lower()
+
+        if direction not in valid_directions:
+            direction = None
+
+        query = str(query or "").strip()
+
         conn = get_connection()
-        cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cursor = conn.cursor(
+            cursor_factory=psycopg2.extras.RealDictCursor
+        )
+
         try:
-            cursor.execute("""
-                SELECT "collegecode", "collegename"
+            where_clause = ""
+            parameters = []
+
+            if query:
+                search_value = f"%{query}%"
+
+                where_clause = """
+                    WHERE LOWER("collegecode") LIKE LOWER(%s)
+                       OR LOWER("collegename") LIKE LOWER(%s)
+                """
+
+                parameters.extend([
+                    search_value,
+                    search_value,
+                ])
+
+            if sort_key and direction:
+                sql_direction = (
+                    "ASC"
+                    if direction == "asc"
+                    else "DESC"
+                )
+
+                if sort_key == "collegecode":
+                    order_clause = (
+                        f'"collegecode" {sql_direction}'
+                    )
+                else:
+                    order_clause = (
+                        f'"collegename" {sql_direction}, '
+                        f'"collegecode" ASC'
+                    )
+            else:
+                # Default sorting
+                order_clause = '"collegecode" ASC'
+
+            query_sql = f"""
+                SELECT
+                    "collegecode",
+                    "collegename"
                 FROM college
-                WHERE LOWER("collegecode") LIKE LOWER(%s)
-                   OR LOWER("collegename") LIKE LOWER(%s)
-                ORDER BY "collegecode"
+                {where_clause}
+                ORDER BY {order_clause}
                 LIMIT %s OFFSET %s
-            """, (f"%{query}%", f"%{query}%", limit, offset))
+            """
+
+            parameters.extend([
+                limit,
+                offset,
+            ])
+
+            cursor.execute(
+                query_sql,
+                tuple(parameters),
+            )
+
             return cursor.fetchall()
         finally:
             cursor.close()
             conn.close()
 
     @staticmethod
-    def sort_college(key="collegecode", limit=9, offset=0):
-        valid_keys = {"collegecode", "collegename"}
-        if key not in valid_keys:
-            key = "collegecode"
+    def search_college(
+        query,
+        limit=9,
+        offset=0,
+        sort_key=None,
+        direction=None,
+    ):
+        return CollegeModel.filter_colleges(
+            query=query,
+            sort_key=sort_key,
+            direction=direction,
+            limit=limit,
+            offset=offset,
+        )
 
-        conn = get_connection()
-        cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        try:
-            cursor.execute(f"""
-                SELECT "collegecode", "collegename"
-                FROM college
-                ORDER BY "{key}"
-                LIMIT %s OFFSET %s
-            """, (limit, offset))
-            return cursor.fetchall()
-        finally:
-            cursor.close()
-            conn.close()
+    @staticmethod
+    def sort_college(
+        key="collegecode",
+        direction="asc",
+        limit=9,
+        offset=0,
+    ):
+        return CollegeModel.filter_colleges(
+            query="",
+            sort_key=key,
+            direction=direction,
+            limit=limit,
+            offset=offset,
+        )
 
     @staticmethod
     def get_all_colleges():
         conn = get_connection()
-        cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cursor = conn.cursor(
+            cursor_factory=psycopg2.extras.RealDictCursor
+        )
+
         try:
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT "collegecode", "collegename"
                 FROM college
                 ORDER BY "collegecode"
-            """)
+                """
+            )
+
             return cursor.fetchall()
         finally:
             cursor.close()

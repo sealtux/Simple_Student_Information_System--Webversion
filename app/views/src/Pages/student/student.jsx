@@ -15,32 +15,50 @@ import defprofile from "../../assets/images/defprofile.png";
 const MAX_IMAGE_SIZE_MB = 2;
 const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
 
+
+
+
+
+
+function Student() {
+
 const validateImageFile = (file) => {
   if (!file) return false;
 
-  // type check
   if (!file.type || !file.type.startsWith("image/")) {
-    alert("Image upload only accepts image files.");
+    showNotification(
+      "Invalid File",
+      "Image upload only accepts image files.",
+      "warning"
+    );
+
     return false;
   }
 
-  // size check
   if (file.size > MAX_IMAGE_SIZE_BYTES) {
-    alert(
-      `Image upload has a file size limit of ${MAX_IMAGE_SIZE_MB} MB. Please choose a smaller image.`
+    showNotification(
+      "File Too Large",
+      `The image must not exceed ${MAX_IMAGE_SIZE_MB} MB.`,
+      "warning"
     );
+
     return false;
   }
 
   return true;
 };
 
-function Student() {
+  const [notification, setNotification] = useState({
+  show: false,
+  title: "",
+  message: "",
+  type: "success",
+});
   const [students, setStudents] = useState([]);
   const [originalStudents, setOriginalStudents] = useState([]);
   const [allStudents, setAllStudents] = useState([]); // full list for validation
   const [selectedRow, setSelectedRow] = useState(null);
-  const [showSortMenu, setShowSortMenu] = useState(false);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const tableRef = useRef(null);
@@ -48,7 +66,7 @@ function Student() {
   const [programs, setPrograms] = useState([]);
   const [showAddConfirm, setShowAddConfirm] = useState(false);
   const [showEditConfirm, setShowEditConfirm] = useState(false);
-  const [activeSort, setActiveSort] = useState(null);
+ 
 const [filterYearLevel, setFilterYearLevel] = useState("");
 const [filterGender, setFilterGender] = useState("");
 const [filterProgram, setFilterProgram] = useState("");
@@ -75,6 +93,12 @@ const hasActiveFilters =
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteMessage, setDeleteMessage] = useState("");
 
+  
+
+
+const [activeSort, setActiveSort] = useState(null);
+const [sortDirection, setSortDirection] = useState(null);
+
   // Edit feature states
   const [showEditForm, setShowEditForm] = useState(false);
   const [editStudent, setEditStudent] = useState({
@@ -87,6 +111,28 @@ const hasActiveFilters =
     profile_url: "",
     profilePictureFile: null,
   });
+
+  const showNotification = (
+  title,
+  message,
+  type = "success"
+) => {
+  setNotification({
+    show: true,
+    title,
+    message,
+    type,
+  });
+};
+
+const closeNotification = () => {
+  setNotification({
+    show: false,
+    title: "",
+    message: "",
+    type: "success",
+  });
+};
 
   // add form states
   const [showAddForm, setShowAddForm] = useState(false);
@@ -111,56 +157,98 @@ const hasActiveFilters =
   };
 
   // Fetch paginated students from backend (current page)
-  const fetchStudents = async (pageNum = 1) => {
-    setLoading(true);
-    try {
-      const res = await fetch(`http://127.0.0.1:5000/students/page/${pageNum}`);
-      const data = await res.json();
-
-      setStudents(data.students || []);
-      setHasNext(data.has_next || false);
-      setPage(pageNum);
-    } catch (error) {
-      console.error("Error fetching students:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-const fetchFilteredStudents = async (
-  pageNum = 1,
-  queryOverride = null,
-  sortOverride = null
-) => {
-  const query = queryOverride !== null ? queryOverride : searchTerm.trim();
-  const sortKey = sortOverride !== null ? sortOverride : activeSort;
-
+const fetchStudents = async (pageNum = 1) => {
   setLoading(true);
+
   try {
-    const params = new URLSearchParams();
-    params.append("page", pageNum);
-
-    if (query) params.append("q", query);
-    if (filterYearLevel) params.append("yearlevel", filterYearLevel);
-    if (filterGender) params.append("gender", filterGender);
-    if (filterProgram) params.append("programcode", filterProgram);
-    if (sortKey) params.append("sortkey", sortKey); 
-
-    const res = await fetch(
-      `http://127.0.0.1:5000/students/filter?${params.toString()}`
+    const response = await fetch(
+      `http://127.0.0.1:5000/students/page/${pageNum}`
     );
-    const data = await res.json();
 
-    setStudents(data.students || []);
-    setPage(pageNum);
+    if (!response.ok) {
+      throw new Error("Failed to fetch students.");
+    }
+
+    const data = await response.json();
+    const fetchedStudents = data.students || [];
+
+    setStudents(fetchedStudents);
+    setOriginalStudents(fetchedStudents);
     setHasNext(data.has_next || false);
-  } catch (err) {
-    console.error("Filter/search error:", err);
+    setPage(pageNum);
+  } catch (error) {
+    console.error("Error fetching students:", error);
   } finally {
     setLoading(false);
   }
 };
 
+const fetchFilteredStudents = async (
+  pageNum = 1,
+  queryOverride = null,
+  sortKeyOverride = activeSort,
+  directionOverride = sortDirection
+) => {
+  const query =
+    queryOverride !== null
+      ? queryOverride
+      : searchTerm.trim();
+
+  setLoading(true);
+
+  try {
+    const params = new URLSearchParams();
+
+    params.append("page", pageNum);
+
+    if (query) {
+      params.append("q", query);
+    }
+
+    if (filterYearLevel) {
+      params.append("yearlevel", filterYearLevel);
+    }
+
+    if (filterGender) {
+      params.append("gender", filterGender);
+    }
+
+    if (filterProgram) {
+      params.append("programcode", filterProgram);
+    }
+
+    if (sortKeyOverride && directionOverride) {
+      params.append("sortkey", sortKeyOverride);
+      params.append("direction", directionOverride);
+    }
+
+    const response = await fetch(
+      `http://127.0.0.1:5000/students/filter?${params.toString()}`
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to search students.");
+    }
+
+    const data = await response.json();
+    const fetchedStudents = data.students || [];
+
+    setStudents(fetchedStudents);
+    setOriginalStudents(fetchedStudents);
+    setPage(pageNum);
+    setHasNext(data.has_next || false);
+  } catch (error) {
+    console.error("Filter/search error:", error);
+
+    showNotification(
+      "Search Failed",
+      error.message || "The students could not be searched.",
+      "error"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
 const applyFilters = (pageNum = 1) => {
   // Use the unified search/filter/sort handler
@@ -198,143 +286,238 @@ const applyFilters = (pageNum = 1) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const fetchSortedStudents = async (
+  pageNum = 1,
+  key = activeSort,
+  direction = sortDirection
+) => {
+  if (!key || !direction) {
+    fetchStudents(pageNum);
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const params = new URLSearchParams();
+
+    params.append("page", pageNum);
+    params.append("key", key);
+    params.append("direction", direction);
+
+    const response = await fetch(
+      `http://127.0.0.1:5000/students/sort?${params.toString()}`
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to sort students.");
+    }
+
+    const data = await response.json();
+    const fetchedStudents = data.students || [];
+
+    setStudents(fetchedStudents);
+    setOriginalStudents(fetchedStudents);
+    setHasNext(data.has_next || false);
+    setPage(pageNum);
+  } catch (error) {
+    console.error("Sorting error:", error);
+
+    showNotification(
+      "Sorting Failed",
+      error.message || "The students could not be sorted.",
+      "error"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
+
+  
   // Pagination handlers
 const handleNext = () => {
   if (!hasNext) return;
 
+  const nextPage = page + 1;
   const query = searchTerm.trim();
 
-  // If there are filters OR a search query, use the filter/search pipeline
   if (hasActiveFilters || query !== "") {
-    handleSearchSubmit(null, page + 1);
+    fetchFilteredStudents(
+      nextPage,
+      query,
+      activeSort,
+      sortDirection
+    );
+
     return;
   }
 
-  if (activeSort) {
-    fetch(
-      `http://127.0.0.1:5000/students/sort?key=${activeSort}&page=${
-        page + 1
-      }`
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        setStudents(data.students || []);
-        setHasNext(data.has_next || false);
-        setPage(page + 1);
-      });
+  if (activeSort && sortDirection) {
+    fetchSortedStudents(
+      nextPage,
+      activeSort,
+      sortDirection
+    );
+
     return;
   }
 
-  fetchStudents(page + 1);
+  fetchStudents(nextPage);
 };
 
-
-  const handlePrev = () => {
+const handlePrev = () => {
   if (page <= 1) return;
 
+  const previousPage = page - 1;
   const query = searchTerm.trim();
 
   if (hasActiveFilters || query !== "") {
-    handleSearchSubmit(null, page - 1);
+    fetchFilteredStudents(
+      previousPage,
+      query,
+      activeSort,
+      sortDirection
+    );
+
     return;
   }
 
+  if (activeSort && sortDirection) {
+    fetchSortedStudents(
+      previousPage,
+      activeSort,
+      sortDirection
+    );
 
-    if (activeSort) {
-      fetch(
-        `http://127.0.0.1:5000/students/sort?key=${activeSort}&page=${
-          page - 1
-        }`
-      )
-        .then((res) => res.json())
-        .then((data) => {
-          setStudents(data.students || []);
-          setHasNext(data.has_next || false);
-          setPage(page - 1);
-        });
-      return;
-    }
-
-    fetchStudents(page - 1);
-  };
-
-const handleSort = (key) => {
-  const sortKey = key === "default" ? null : key;
-  setActiveSort(sortKey);
-
-  // Reset sort (back to default)
-  if (sortKey === null) {
-    // If we have filters or search, just reload through unified handler
-    handleSearchSubmit(null, 1, null);
-    setShowSortMenu(false);
     return;
   }
 
-  // If there are filters OR a search query
-  // → use the unified pipeline WITH the new sortKey
-  if (hasActiveFilters || searchTerm.trim() !== "") {
-    handleSearchSubmit(null, 1, sortKey); // ✅ pass sortKey explicitly
-    setShowSortMenu(false);
-    return;
-  }
-
-  // No filters & no search → keep your existing /sort endpoint
-  setStudents([]);
-  setLoading(true);
-
-  fetch(
-    `http://127.0.0.1:5000/students/sort?key=${encodeURIComponent(
-      sortKey
-    )}&page=1`
-  )
-    .then((res) => res.json())
-    .then((data) => {
-      const arr = Array.isArray(data) ? data : data.students || [];
-      setStudents(arr);
-      setHasNext(data.has_next || false);
-      setPage(1);
-    })
-    .catch((err) => {
-      console.error("Error fetching sorted students:", err);
-    })
-    .finally(() => {
-      setLoading(false);
-      setShowSortMenu(false);
-    });
+  fetchStudents(previousPage);
 };
 
-
-
-  const handleSearchSubmit = (e, pageNum = 1, sortOverride = null) => {
-  if (e) e.preventDefault();
-
+const handleSort = (key) => {
   const query = searchTerm.trim();
-  const sortKey = sortOverride !== null ? sortOverride : activeSort;
 
-  // If there is ANY search text OR ANY filters OR ANY sort,
-  // always use /students/filter
-  if (query !== "" || hasActiveFilters || sortKey) {
-    fetchFilteredStudents(pageNum, query, sortKey);
+  let newDirection;
+
+  // First click: ascending
+  if (activeSort !== key) {
+    newDirection = "asc";
+  }
+
+  // Second click: descending
+  else if (sortDirection === "asc") {
+    newDirection = "desc";
+  }
+
+  // Third click: default
+  else {
+    setActiveSort(null);
+    setSortDirection(null);
+
+    if (hasActiveFilters || query !== "") {
+      fetchFilteredStudents(
+        1,
+        query,
+        null,
+        null
+      );
+    } else {
+      fetchStudents(1);
+    }
+
     return;
   }
 
-  // Otherwise, just use the default paginated list
+  setActiveSort(key);
+  setSortDirection(newDirection);
+
+  if (hasActiveFilters || query !== "") {
+    fetchFilteredStudents(
+      1,
+      query,
+      key,
+      newDirection
+    );
+
+    return;
+  }
+
+  fetchSortedStudents(
+    1,
+    key,
+    newDirection
+  );
+};
+
+const getSortArrow = (key) => {
+  let arrow = "▲▼";
+
+  if (activeSort === key) {
+    arrow = sortDirection === "asc" ? "▲" : "▼";
+  }
+
+  return (
+    <span
+      style={{
+        fontSize: "8px",
+        marginLeft: "4px",
+        letterSpacing: "-2px",
+        verticalAlign: "middle",
+      }}
+    >
+      {arrow}
+    </span>
+  );
+};
+
+const handleSearchSubmit = (e, pageNum = 1) => {
+  if (e) {
+    e.preventDefault();
+  }
+
+  const query = searchTerm.trim();
+
+  if (query !== "" || hasActiveFilters) {
+    fetchFilteredStudents(
+      pageNum,
+      query,
+      activeSort,
+      sortDirection
+    );
+
+    return;
+  }
+
+  if (activeSort && sortDirection) {
+    fetchSortedStudents(
+      pageNum,
+      activeSort,
+      sortDirection
+    );
+
+    return;
+  }
+
   fetchStudents(pageNum);
 };
 
   // Delete student
-  const handleDelete = () => {
-    if (!selectedRow) {
-      setDeleteMessage("⚠️ Please select a student to delete.");
-      setShowDeleteConfirm(true);
-      return;
-    }
-
-    setDeleteMessage(
-      `Are you sure you want to delete student ${selectedRow.IdNumber}?`
-    );
+ const handleDelete = (student = selectedRow) => {
+  if (!student) {
+    setDeleteMessage("⚠️ Please select a student to delete.");
     setShowDeleteConfirm(true);
-  };
+    return;
+  }
+
+  setSelectedRow(student);
+
+  setDeleteMessage(
+    `Are you sure you want to delete student ${student.IdNumber}?`
+  );
+
+  setShowDeleteConfirm(true);
+};
 
 const confirmDelete = async (e) => {
   if (e) e.preventDefault();
@@ -365,11 +548,20 @@ const confirmDelete = async (e) => {
           .from("student-images")
           .remove([filePath]);
 
-      if (storageError) {
-        console.error("SUPABASE DELETE ERROR:", storageError);
-        alert(`Image delete failed: ${storageError.message}`);
-        return;
-      }
+     if (storageError) {
+  console.error("SUPABASE DELETE ERROR:", storageError);
+
+  setShowDeleteConfirm(false);
+
+  showNotification(
+    "Image Delete Failed",
+    storageError.message ||
+      "The profile image could not be deleted.",
+    "error"
+  );
+
+  return;
+}
 
       console.log("Deleted Supabase files:", deletedFiles);
     }
@@ -411,24 +603,36 @@ const confirmDelete = async (e) => {
     setShowDeleteConfirm(false);
     setShowProfileModal(false);
 
-    alert("Student and profile image deleted successfully!");
-  } catch (error) {
-    console.error("DELETE ERROR:", error);
-    setDeleteMessage(error.message || "Failed to delete student.");
-  }
+showNotification(
+  "Student Deleted",
+  "The student and profile image were deleted successfully.",
+  "success"
+);
+} catch (error) {
+  console.error("DELETE ERROR:", error);
+
+  setShowDeleteConfirm(false);
+
+  showNotification(
+    "Delete Failed",
+    error.message || "The student could not be deleted.",
+    "error"
+  );
+}
 };
 
   // Edit student info
   const [originalIdNumber, setOriginalIdNumber] = useState("");
 
-  const handleEdit = () => {
-  if (!selectedRow) return;
+ const handleEdit = (student = selectedRow) => {
+  if (!student) return;
 
-  setOriginalIdNumber(selectedRow.IdNumber);
+  setSelectedRow(student);
+  setOriginalIdNumber(student.IdNumber);
 
   setEditStudent({
-    ...selectedRow,
-    profilePictureFile: null, // 🔥 CLEAR OLD FILE HERE
+    ...student,
+    profilePictureFile: null,
   });
 
   setShowEditForm(true);
@@ -470,7 +674,12 @@ const handleEditSave = async (e) => {
 
       if (uploadError) {
         console.error("UPLOAD ERROR:", uploadError);
-        alert(`Image upload failed: ${uploadError.message}`);
+        showNotification(
+  "Upload Failed",
+  uploadError.message || "The image could not be uploaded.",
+  "error"
+);
+
         return;
       }
 
@@ -580,13 +789,21 @@ const handleEditSave = async (e) => {
     setShowEditForm(false);
     setShowEditConfirm(false);
 
-    alert("Student updated successfully!");
+  showNotification(
+  "Update Successful",
+  "The student information was updated successfully.",
+  "success"
+);
 
     await fetchStudents(page);
     await fetchAllStudents();
   } catch (error) {
     console.error("EDIT ERROR:", error);
-    alert(error.message || "Student update failed.");
+    showNotification(
+  "Update Failed",
+  error.message || "The student could not be updated.",
+  "error"
+);
   }
 };
   // =======================
@@ -642,71 +859,103 @@ const handleEditSave = async (e) => {
   };
 
   // Validation & Add (used for both Add and Edit)
-  const validateStudent = (student, existingStudents) => {
-    const idPattern = /^\d{4}-\d{4}$/;
+ const validateStudent = (student, existingStudents) => {
+  const idPattern = /^\d{4}-\d{4}$/;
 
-    for (const [key, value] of Object.entries(student)) {
-      if (
-        key !== "profile_url" &&
-        key !== "profilePictureFile" &&
-        !String(value).trim()
-      ) {
-        alert(`${key} is required`);
-        return false;
-      }
-    }
-
-    if (!idPattern.test(student.IdNumber)) {
-      alert("ID Number must be in format YYYY-NNNN (e.g., 2020-0001)");
-      return false;
-    }
-
-    const year = parseInt(student.IdNumber.split("-")[0], 10);
-    if (isNaN(year) || year < 2020) {
-      alert("Year must be 2020 or later");
-      return false;
-    }
-
+  for (const [key, value] of Object.entries(student)) {
     if (
-      /^0000-\d{4}$/.test(student.IdNumber) ||
-      /^\d{4}-0000$/.test(student.IdNumber)
+      key !== "profile_url" &&
+      key !== "profilePictureFile" &&
+      !String(value).trim()
     ) {
-      alert(
-        "ID Number cannot contain all zeros in either part (e.g., 0000-0000 or 2022-0000)."
+      showNotification(
+        "Missing Information",
+        `${key} is required.`,
+        "warning"
       );
       return false;
     }
+  }
 
-    const duplicateId = existingStudents.find(
-      (s) => s.IdNumber === student.IdNumber
+  if (!idPattern.test(student.IdNumber)) {
+    showNotification(
+      "Invalid ID Number",
+      "ID Number must use the format YYYY-NNNN, such as 2020-0001.",
+      "warning"
     );
+    return false;
+  }
 
-    if (duplicateId) {
-      alert("A student with this ID Number already exists.");
-      return false;
-    }
+  const year = parseInt(student.IdNumber.split("-")[0], 10);
 
-    const duplicate = existingStudents.find(
-      (s) =>
-        s.FirstName.toLowerCase() === student.FirstName.toLowerCase() &&
-        s.LastName.toLowerCase() === student.LastName.toLowerCase()
+  if (isNaN(year) || year < 2020) {
+    showNotification(
+      "Invalid Year",
+      "The ID Number year must be 2020 or later.",
+      "warning"
     );
+    return false;
+  }
 
-    if (duplicate) {
-      alert("A student with the same First and Last name already exists.");
-      return false;
-    }
+  if (
+    /^0000-\d{4}$/.test(student.IdNumber) ||
+    /^\d{4}-0000$/.test(student.IdNumber)
+  ) {
+    showNotification(
+      "Invalid ID Number",
+      "The ID Number cannot contain all zeros in either section.",
+      "warning"
+    );
+    return false;
+  }
 
-    return true;
-  };
+  const duplicateId = existingStudents.find(
+    (existingStudent) =>
+      existingStudent.IdNumber === student.IdNumber
+  );
 
-  // Validate edit: reuse validateStudent but ignore the original record
-  const validateStudentEdit = (student, existingStudents, originalId) => {
-    const others = existingStudents.filter((s) => s.IdNumber !== originalId);
-    return validateStudent(student, others);
-  };
+  if (duplicateId) {
+    showNotification(
+      "Duplicate Student",
+      "A student with this ID Number already exists.",
+      "warning"
+    );
+    return false;
+  }
 
-  
+  const duplicateName = existingStudents.find(
+    (existingStudent) =>
+      existingStudent.FirstName.toLowerCase() ===
+        student.FirstName.toLowerCase() &&
+      existingStudent.LastName.toLowerCase() ===
+        student.LastName.toLowerCase()
+  );
+
+  if (duplicateName) {
+    showNotification(
+      "Duplicate Student",
+      "A student with the same first and last name already exists.",
+      "warning"
+    );
+    return false;
+  }
+
+  return true;
+};
+
+  const validateStudentEdit = (
+  student,
+  existingStudents,
+  originalId
+) => {
+  const otherStudents = existingStudents.filter(
+    (existingStudent) =>
+      existingStudent.IdNumber !== originalId
+  );
+
+  return validateStudent(student, otherStudents);
+};
+
 const handleAddStudent = async (e) => {
   e.preventDefault();
 
@@ -727,10 +976,16 @@ const handleAddStudent = async (e) => {
       });
 
     if (error) {
-      alert("Image upload failed!");
-      console.error(error);
-      return;
-    }
+  console.error(error);
+
+  showNotification(
+    "Upload Failed",
+    error.message || "The student image could not be uploaded.",
+    "error"
+  );
+
+  return;
+}
 
     const { data: urlData } = supabase.storage
       .from("student-images")
@@ -756,7 +1011,11 @@ const handleAddStudent = async (e) => {
     const data = await response.json();
 
     if (response.ok) {
-      alert("Student added successfully!");
+      showNotification(
+  "Student Added",
+  "The new student was added successfully.",
+  "success"
+);
       setShowAddForm(false);
 
       setNewStudent({
@@ -772,12 +1031,20 @@ const handleAddStudent = async (e) => {
 
       await fetchStudents(page);
       await fetchAllStudents();
-    } else {
-      alert(`Error: ${data.error}`);
-    }
+   } else {
+  showNotification(
+    "Add Failed",
+    data.error || "The student could not be added.",
+    "error"
+  );
+}
   } catch (err) {
     console.error(err);
-    alert("Error adding student.");
+    showNotification(
+  "Add Failed",
+  "An error occurred while adding the student.",
+  "error"
+);
   }
 };
 
@@ -806,7 +1073,11 @@ const saveProfileChanges = async () => {
 
     if (uploadError) {
       console.error("UPLOAD ERROR:", uploadError);
-      alert(`Image upload failed: ${uploadError.message}`);
+      showNotification(
+  "Upload Failed",
+  uploadError.message || "The image could not be uploaded.",
+  "error"
+);
       return;
     }
 
@@ -916,11 +1187,20 @@ const saveProfileChanges = async () => {
       fileInputRef.current.value = "";
     }
 
-    alert("Profile picture updated successfully!");
-  } catch (err) {
-    console.error("PROFILE UPDATE ERROR:", err);
-    alert(err.message || "Profile update failed.");
-  }
+    showNotification(
+  "Profile Updated",
+  "The student's profile picture was updated successfully.",
+  "success"
+);
+} catch (err) {
+  console.error("PROFILE UPDATE ERROR:", err);
+
+  showNotification(
+    "Profile Update Failed",
+    err.message || "The profile picture could not be updated.",
+    "error"
+  );
+}
 };  
 const handleRemoveProfilePicture = async () => {
   if (!selectedRow) return;
@@ -928,7 +1208,6 @@ const handleRemoveProfilePicture = async () => {
   try {
     let filePath = null;
 
-    // Extract the real filename, including timestamp and extension
     if (
       selectedRow.profile_url &&
       selectedRow.profile_url.includes(
@@ -939,15 +1218,25 @@ const handleRemoveProfilePicture = async () => {
       filePath = cleanUrl.split("/student-images/")[1];
     }
 
-    // Delete image from Supabase
+    // Delete the image from Supabase
     if (filePath) {
       const { error: storageError } = await supabase.storage
         .from("student-images")
         .remove([filePath]);
 
       if (storageError) {
-        console.error("SUPABASE DELETE ERROR:", storageError);
-        alert(`Image delete failed: ${storageError.message}`);
+        console.error(
+          "SUPABASE DELETE ERROR:",
+          storageError
+        );
+
+        showNotification(
+          "Image Delete Failed",
+          storageError.message ||
+            "The profile image could not be deleted.",
+          "error"
+        );
+
         return;
       }
     }
@@ -967,36 +1256,74 @@ const handleRemoveProfilePicture = async () => {
       }
     );
 
-    const data = await response.json();
+    const responseText = await response.text();
 
-    if (!response.ok) {
-      throw new Error(data.error || "Failed to update student.");
+    let data = {};
+
+    try {
+      data = responseText
+        ? JSON.parse(responseText)
+        : {};
+    } catch {
+      throw new Error(
+        "The backend returned an invalid response."
+      );
     }
 
-    setStudents((prev) =>
-      prev.map((student) =>
+    if (!response.ok) {
+      throw new Error(
+        data.error || "Failed to update student."
+      );
+    }
+
+    setStudents((previousStudents) =>
+      previousStudents.map((student) =>
         student.IdNumber === selectedRow.IdNumber
-          ? { ...student, profile_url: null }
+          ? {
+              ...student,
+              profile_url: null,
+            }
           : student
       )
     );
 
-    setAllStudents((prev) =>
-      prev.map((student) =>
+    setAllStudents((previousStudents) =>
+      previousStudents.map((student) =>
         student.IdNumber === selectedRow.IdNumber
-          ? { ...student, profile_url: null }
+          ? {
+              ...student,
+              profile_url: null,
+            }
           : student
       )
     );
 
-    setSelectedRow((prev) =>
-      prev ? { ...prev, profile_url: null } : prev
+    setSelectedRow((previousStudent) =>
+      previousStudent
+        ? {
+            ...previousStudent,
+            profile_url: null,
+          }
+        : previousStudent
     );
 
-    alert("Profile picture removed successfully!");
+    showNotification(
+      "Profile Removed",
+      "The profile picture was removed successfully.",
+      "success"
+    );
   } catch (error) {
-    console.error("REMOVE PROFILE ERROR:", error);
-    alert(error.message || "Error removing profile picture.");
+    console.error(
+      "REMOVE PROFILE ERROR:",
+      error
+    );
+
+    showNotification(
+      "Profile Removal Failed",
+      error.message ||
+        "The profile picture could not be removed.",
+      "error"
+    );
   }
 };
 
@@ -1061,112 +1388,205 @@ const handleRemoveProfilePicture = async () => {
                 tableLayout: "fixed",
               }}
             >
-              <thead>
-                <tr>
-                  <th>Profile</th>
-                  <th>ID Number</th>
-                  <th>First Name</th>
-                  <th>Last Name</th>
-                  <th>Year Level</th>
-                  <th>Gender</th>
-                  <th>Program Code</th>
-                </tr>
-              </thead>
+            <thead>
+  <tr>
+    <th>Profile</th>
+
+    <th
+      onClick={() => handleSort("IdNumber")}
+      style={{ cursor: "pointer", userSelect: "none" }}
+    >
+      ID Number{" "}
+      {getSortArrow("IdNumber")}
+    </th>
+
+    <th
+      onClick={() => handleSort("FirstName")}
+      style={{ cursor: "pointer", userSelect: "none" }}
+    >
+      First Name{" "}
+      {getSortArrow("FirstName")}
+    </th>
+
+    <th
+      onClick={() => handleSort("LastName")}
+      style={{ cursor: "pointer", userSelect: "none" }}
+    >
+      Last Name{" "}
+    {getSortArrow("LastName")}
+    </th>
+
+    <th
+      onClick={() => handleSort("YearLevel")}
+      style={{ cursor: "pointer", userSelect: "none" }}
+    >
+      Year Level{" "}
+     {getSortArrow("YearLevel")}
+    </th>
+
+    <th
+      onClick={() => handleSort("Gender")}
+      style={{ cursor: "pointer", userSelect: "none" }}
+    >
+      Gender{" "}
+      {getSortArrow("Gender")}
+    </th>
+
+    <th
+  onClick={() => handleSort("ProgramCode")}
+  style={{
+    cursor: "pointer",
+    userSelect: "none",
+    width: "160px",
+    whiteSpace: "nowrap",
+    overflow: "visible",
+    textOverflow: "clip",
+  }}
+>
+  Program Code{" "}
+ {getSortArrow("ProgramCode")}
+</th>
+
+    <th style={{ width: "110px" }}>Actions</th>
+  </tr>
+</thead>
               <tbody>
-                {students.length > 0 ? (
-                  students.map((student, rowIndex) => (
-                    <tr
-                      key={student.IdNumber || rowIndex}
-                      onClick={() => setSelectedRow(student)}
-                      className={
-                        selectedRow?.IdNumber === student.IdNumber
-                          ? "selected-row"
-                          : ""
-                      }
-                      style={{ cursor: "pointer" }}
-                    >
-                      {/* Profile cell: click to open profile modal */}
-                      <td
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedRow(student);
-                          // reset draft state when opening
-                          setProfileDraftFile(null);
-                          setProfileDraftPreviewUrl(null);
-                          setProfileDraftDeleted(false);
-                          if (fileInputRef.current)
-                            fileInputRef.current.value = "";
-                          setShowProfileModal(true);
-                        }}
-                        style={{ cursor: "pointer" }}
-                      >
-                        {student.profile_url ? (
-                          <img
-                            src={student.profile_url}
-                            alt="Profile"
-                            style={{
-                              width: "49px",
-                              height: "43px",
-                              borderRadius: "50%",
-                              objectFit: "cover",
-                            }}
-                          />
-                        ) : (
-                          <img
-                            src={defprofile}
-                            alt="Profile"
-                            style={{
-                              width: "50px",
-                              height: "40px",
-                              borderRadius: "50%",
-                              objectFit: "cover",
-                            }}
-                          />
-                        )}
-                      </td>
+  {students.length > 0 ? (
+    students.map((student, rowIndex) => (
+      <tr
+        key={student.IdNumber || rowIndex}
+        onClick={() => setSelectedRow(student)}
+        className={
+          selectedRow?.IdNumber === student.IdNumber
+            ? "selected-row"
+            : ""
+        }
+        style={{ cursor: "pointer" }}
+      >
+        {/* Profile */}
+        <td
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedRow(student);
 
-                      <td>{student.IdNumber}</td>
-                      <td>{student.FirstName}</td>
-                      <td>{student.LastName}</td>
-                      <td>{student.YearLevel}</td>
-                      <td>{student.Gender}</td>
-                      <td>{student.ProgramCode}</td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr className="no-results">
-                    <td colSpan="7" style={{ textAlign: "center", color: "#999" }}>
-                      No students found
-                    </td>
-                  </tr>
-                )}
+            setProfileDraftFile(null);
+            setProfileDraftPreviewUrl(null);
+            setProfileDraftDeleted(false);
 
-                {Array.from({ length: Math.max(0, 4 - students.length) }).map(
-                  (_, i) => (
-                    <tr key={`filler-${i}`} className="filler-row">
-                      <td colSpan="7">&nbsp;</td>
-                    </tr>
-                  )
-                )}
-              </tbody>
+            if (fileInputRef.current) {
+              fileInputRef.current.value = "";
+            }
+
+            setShowProfileModal(true);
+          }}
+          style={{ cursor: "pointer" }}
+        >
+          <img
+            src={student.profile_url || defprofile}
+            alt="Profile"
+            style={{
+              width: "49px",
+              height: "43px",
+              borderRadius: "50%",
+              objectFit: "cover",
+            }}
+          />
+        </td>
+
+        <td>{student.IdNumber}</td>
+        <td>{student.FirstName}</td>
+        <td>{student.LastName}</td>
+        <td>{student.YearLevel}</td>
+        <td>{student.Gender}</td>
+        <td>{student.ProgramCode}</td>
+
+        {/* Actions */}
+        <td>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            <button
+              type="button"
+              title="Edit student"
+             onClick={(e) => {
+  e.stopPropagation();
+  handleEdit(student);
+}}
+            style={{
+  border: "2px solid #4956AD",
+  borderRadius: "6px",
+  padding: "6px",
+  backgroundColor: "#f8f9fd",
+  cursor: "pointer",
+}}
+            >
+              <img
+                src={editIcon}
+                alt="Edit"
+                style={{
+                  width: "20px",
+                  height: "20px",
+                  display: "block",
+                }}
+              />
+            </button>
+
+            <button
+              type="button"
+              title="Delete student"
+              onClick={(e) => {
+  e.stopPropagation();
+  handleDelete(student);
+}}
+               style={{
+  border: "2px solid #4956AD",
+  borderRadius: "6px",
+  padding: "6px",
+  backgroundColor: "#f8f9fd",
+  cursor: "pointer",
+}}
+            >
+              <img
+                src={deleteIcon}
+                alt="Delete"
+                style={{
+                  width: "20px",
+                  height: "20px",
+                  display: "block",
+                }}
+              />
+            </button>
+          </div>
+        </td>
+      </tr>
+    ))
+  ) : (
+    <tr className="no-results">
+      <td colSpan="8" style={{ textAlign: "center", color: "#999" }}>
+        No students found
+      </td>
+    </tr>
+  )}
+
+  {Array.from({
+    length: Math.max(0, 4 - students.length),
+  }).map((_, i) => (
+    <tr key={`filler-${i}`} className="filler-row">
+      <td colSpan="8">&nbsp;</td>
+    </tr>
+  ))}
+</tbody>
+
             </table>
           </div>
 
           <div className="bottomcon">
-            <button className="editbut" onClick={handleEdit}>
-              <img
-                src={editIcon}
-                alt="Edit"
-                className="icon"
-                style={{
-                  width: "30px",
-                  height: "30px",
-                  position: "absolute",
-                  left: "32px",
-                }}
-              />
-              Edit
-            </button>
+           
 
             <button className="addbut" onClick={() => setShowAddForm(true)}>
               <img
@@ -1237,56 +1657,36 @@ const handleRemoveProfilePicture = async () => {
               </button>
             </div>
 
-            <div className="action-buttons">
-              <button
-                className="deletebut"
-                onClick={handleDelete}
-                disabled={!selectedRow}
-              >
-                <img
-                  src={deleteIcon}
-                  alt="Delete"
-                  className="icon"
-                  style={{
-                    width: "30px",
-                    height: "30px",
-                    position: "absolute",
-                    left: "30px",
-                  }}
-                />
-                Delete
-              </button>
-            </div>
+<div className="action-buttons">
+  <button
+    type="button"
+    className="deletebut"
+    onClick={() => setShowFilterModal(true)}
+    style={{
+      width: "120px",
+      height: "50px",
+      fontSize: "16px",
+      gap: "6px",
+      padding: "0",
+    }}
+  >
+    <img
+      src={sortIcon}
+      alt="Filter"
+      style={{
+        width: "24px",
+        height: "24px",
+      }}
+    />
+
+    <span>Filters</span>
+  </button>
+</div>
           </div>
 
           {/* sort button and popup */}
           <div className="sortcon">
-            <button
-              className="sortbut"
-              onClick={() => setShowSortMenu(!showSortMenu)}
-            >
-              <img
-                src={sortIcon}
-                alt="Sort"
-                style={{
-                  width: "30px",
-                  height: "30px",
-                  position: "absolute",
-                  left: "32px",
-                }}
-              />
-              <img
-                src={arrowIcon}
-                alt="arrrowdown"
-                style={{
-                  width: "35px",
-                  height: "35px",
-                  position: "absolute",
-                  left: "140px",
-                }}
-              />
-              Sort by:
-            </button>
+        
 
             <div className="search-wrapper">
               <form onSubmit={handleSearchSubmit}>
@@ -1318,19 +1718,7 @@ const handleRemoveProfilePicture = async () => {
               </form>
             </div>
 
-            {showSortMenu && (
-              <div className="sort-popup">
-                <p onClick={() => handleSort("default")}>Sort by: Default</p>
-                <p onClick={() => handleSort("IdNumber")}>Sort by ID Number</p>
-                <p onClick={() => handleSort("FirstName")}>Sort by First Name</p>
-                <p onClick={() => handleSort("LastName")}>Sort by Last Name</p>
-                <p onClick={() => handleSort("YearLevel")}>Sort by Year Level</p>
-                <p onClick={() => handleSort("Gender")}>Sort by Gender</p>
-                <p onClick={() => handleSort("ProgramCode")}>
-                  Sort by Program Code
-                </p>
-              </div>
-            )}
+        
           </div>
 
           {/* EDIT MODAL */}
@@ -2223,98 +2611,103 @@ const handleRemoveProfilePicture = async () => {
             </div>
           )}
 
-      {/*   
-<div
-  className="filters-wrapper"
-  style={{
-    position: "absolute",
-    display: "flex",
-    alignItems: "center",
-    marginLeft: "220px",
-    top: "-70px",
-    left: "200px",
-    zIndex: 5,
-  }}
->
-  <button
-    type="button"
-    onClick={() => setShowFilterModal(true)}
-    style={{
-      padding: "6px 14px",
-      borderRadius: "6px",
-      border: "none",
-      backgroundColor: "#4956AD",
-      color: "#fff",
-      cursor: "pointer",
-      fontSize: "0.9rem",
-      fontWeight: "500",
-      boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
-    }}
-  >
-    Filters ▾
-  </button>
-</div>
+  
 
-*/}
+{/* NOTIFICATION MODAL */}
 
-{/*Modal changes*/}
-{showFilterModal && (  
+
+{/* FILTER MODAL */}
+{showFilterModal && (
   <div
-    className="filters-modal-overlay"
+    className="modal-overlay"
     onClick={() => setShowFilterModal(false)}
-    style={{
-      position: "fixed",
-      top: 0,
-      left: 0,
-      width: "100vw",
-      height: "100vh",
-      backgroundColor: "rgba(0,0,0,0.4)",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      zIndex: 999,
-    }}
   >
     <div
-      className="filters-modal"
+      className="modal-content"
       onClick={(e) => e.stopPropagation()}
-      style={{
-        backgroundColor: "#fff",
-        borderRadius: "10px",
-        padding: "20px 24px",
-        minWidth: "320px",
-        maxWidth: "420px",
-        boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
-        color: "#2E3070",
-      }}
     >
-      <h3 style={{ marginBottom: "12px" }}>Filter Students</h3>
-      <p
+      {/* Purple header */}
+      <div className="navbarhead">
+        <img
+          src={sortIcon}
+          alt="Filter students"
+          style={{
+            width: "60px",
+            height: "60px",
+            position: "absolute",
+            left: "3vw",
+            top: "1.5vh",
+            objectFit: "contain",
+            zIndex: 3,
+          }}
+        />
+
+        <h2
+          style={{
+            color: "#fff",
+            fontWeight: "bold",
+            position: "absolute",
+            left: "8vw",
+            top: "1vh",
+          }}
+        >
+          Filter Students
+        </h2>
+      </div>
+
+      {/* Close button */}
+      <button
+        type="button"
+        onClick={() => setShowFilterModal(false)}
         style={{
-          fontSize: "0.85rem",
-          marginTop: 0,
-          marginBottom: "16px",
-          color: "#666",
+          position: "absolute",
+          top: "10px",
+          right: "18px",
+          border: "none",
+          backgroundColor: "transparent",
+          color: "#fff",
+          fontSize: "28px",
+          cursor: "pointer",
+          zIndex: 5,
         }}
       >
-        Choose filters and click <strong>Apply</strong>.
-      </p>
+        ×
+      </button>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-        <label style={{ fontSize: "0.85rem" }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "18px",
+          width: "330px",
+          margin: "120px auto 0",
+          color: "#2E3070",
+        }}
+      >
+        {/* Gender */}
+        <label
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "7px",
+            fontWeight: "bold",
+          }}
+        >
           Gender
+
           <select
             value={filterGender}
             onChange={(e) => setFilterGender(e.target.value)}
             style={{
               width: "100%",
-              padding: "6px 10px",
-              borderRadius: "6px",
+              height: "42px",
+              padding: "0 12px",
               border: "1px solid #D0D0D0",
-              fontSize: "0.9rem",
-              color: "#2E3070",
+              borderRadius: "7px",
               backgroundColor: "#fff",
-              marginTop: "4px",
+              color: "#2E3070",
+              fontSize: "14px",
+              outline: "none",
             }}
           >
             <option value="">All Genders</option>
@@ -2323,20 +2716,30 @@ const handleRemoveProfilePicture = async () => {
           </select>
         </label>
 
-        <label style={{ fontSize: "0.85rem" }}>
+        {/* Year level */}
+        <label
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "7px",
+            fontWeight: "bold",
+          }}
+        >
           Year Level
+
           <select
             value={filterYearLevel}
             onChange={(e) => setFilterYearLevel(e.target.value)}
             style={{
               width: "100%",
-              padding: "6px 10px",
-              borderRadius: "6px",
+              height: "42px",
+              padding: "0 12px",
               border: "1px solid #D0D0D0",
-              fontSize: "0.9rem",
-              color: "#2E3070",
+              borderRadius: "7px",
               backgroundColor: "#fff",
-              marginTop: "4px",
+              color: "#2E3070",
+              fontSize: "14px",
+              outline: "none",
             }}
           >
             <option value="">All Years</option>
@@ -2347,25 +2750,39 @@ const handleRemoveProfilePicture = async () => {
           </select>
         </label>
 
-        <label style={{ fontSize: "0.85rem" }}>
+        {/* Program */}
+        <label
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "7px",
+            fontWeight: "bold",
+          }}
+        >
           Program
+
           <select
             value={filterProgram}
             onChange={(e) => setFilterProgram(e.target.value)}
             style={{
               width: "100%",
-              padding: "6px 10px",
-              borderRadius: "6px",
+              height: "42px",
+              padding: "0 12px",
               border: "1px solid #D0D0D0",
-              fontSize: "0.9rem",
-              color: "#2E3070",
+              borderRadius: "7px",
               backgroundColor: "#fff",
-              marginTop: "4px",
+              color: "#2E3070",
+              fontSize: "14px",
+              outline: "none",
             }}
           >
             <option value="">All Programs</option>
+
             {programs.map((prog) => (
-              <option key={prog.programcode} value={prog.programcode}>
+              <option
+                key={prog.programcode}
+                value={prog.programcode}
+              >
                 {prog.programcode}
               </option>
             ))}
@@ -2373,12 +2790,13 @@ const handleRemoveProfilePicture = async () => {
         </label>
       </div>
 
+      {/* Buttons */}
       <div
         style={{
           display: "flex",
-          justifyContent: "flex-end",
-          gap: "8px",
-          marginTop: "18px",
+          justifyContent: "center",
+          gap: "12px",
+          marginTop: "30px",
         }}
       >
         <button
@@ -2387,17 +2805,19 @@ const handleRemoveProfilePicture = async () => {
             setFilterGender("");
             setFilterYearLevel("");
             setFilterProgram("");
-            applyFilters(1);
             setShowFilterModal(false);
+
+            fetchStudents(1);
           }}
           style={{
-            padding: "6px 12px",
-            borderRadius: "6px",
-            border: "1px solid #D0D0D0",
-            backgroundColor: "#f5f5f5",
+            minWidth: "120px",
+            padding: "10px 20px",
+            borderRadius: "7px",
+            border: "1px solid #2E3070",
+            backgroundColor: "#fff",
             color: "#2E3070",
+            fontWeight: "bold",
             cursor: "pointer",
-            fontSize: "0.85rem",
           }}
         >
           Clear
@@ -2410,17 +2830,17 @@ const handleRemoveProfilePicture = async () => {
             setShowFilterModal(false);
           }}
           style={{
-            padding: "6px 14px",
-            borderRadius: "6px",
+            minWidth: "120px",
+            padding: "10px 20px",
+            borderRadius: "7px",
             border: "none",
-            backgroundColor: "#4956AD",
+            backgroundColor: "#2E3070",
             color: "#fff",
+            fontWeight: "bold",
             cursor: "pointer",
-            fontSize: "0.9rem",
-            fontWeight: "500",
           }}
         >
-          Apply
+          Apply Filter
         </button>
       </div>
     </div>
@@ -2436,6 +2856,110 @@ const handleRemoveProfilePicture = async () => {
           </div>
         </>
       )}
+
+
+      {notification.show && (
+      <div
+        className="modal-overlay"
+        onClick={closeNotification}
+        style={{ zIndex: 2000 }}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            width: "380px",
+            maxWidth: "90vw",
+            backgroundColor: "#fff",
+            borderRadius: "12px",
+            overflow: "hidden",
+            boxShadow: "0 10px 35px rgba(0, 0, 0, 0.25)",
+            position: "relative",
+          }}
+        >
+          <div
+            style={{
+              minHeight: "85px",
+              backgroundColor: "#2E3070",
+              display: "flex",
+              alignItems: "center",
+              padding: "0 24px",
+              gap: "15px",
+            }}
+          >
+            <div
+              style={{
+                width: "48px",
+                height: "48px",
+                borderRadius: "50%",
+                backgroundColor:
+                  notification.type === "success"
+                    ? "#4CAF50"
+                    : notification.type === "error"
+                    ? "#d9534f"
+                    : "#f0ad4e",
+                color: "#fff",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                fontSize: "26px",
+                fontWeight: "bold",
+              }}
+            >
+              {notification.type === "success"
+                ? "✓"
+                : notification.type === "error"
+                ? "×"
+                : "!"}
+            </div>
+
+            <h2
+              style={{
+                margin: 0,
+                color: "#fff",
+                fontSize: "22px",
+              }}
+            >
+              {notification.title}
+            </h2>
+          </div>
+
+          <div
+            style={{
+              padding: "28px 25px 24px",
+              textAlign: "center",
+              color: "#2E3070",
+            }}
+          >
+            <p
+              style={{
+                margin: "0 0 25px",
+                fontSize: "15px",
+                lineHeight: "1.6",
+              }}
+            >
+              {notification.message}
+            </p>
+
+            <button
+              type="button"
+              onClick={closeNotification}
+              style={{
+                minWidth: "120px",
+                padding: "10px 22px",
+                border: "none",
+                borderRadius: "7px",
+                backgroundColor: "#2E3070",
+                color: "#fff",
+                fontWeight: "bold",
+                cursor: "pointer",
+              }}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     </div>
   );
 }

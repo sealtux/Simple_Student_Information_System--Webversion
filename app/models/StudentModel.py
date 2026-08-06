@@ -1,31 +1,41 @@
 from app.models.databaseconnection import get_connection
+
 import psycopg2.extras
+
 
 class StudentModel:
 
     @staticmethod
     def get_students(limit=9, offset=0):
         conn = get_connection()
-        cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cursor = conn.cursor(
+            cursor_factory=psycopg2.extras.RealDictCursor
+        )
+
         try:
             cursor.execute("""
-                SELECT "IdNumber", "FirstName", "LastName", "YearLevel", "Gender", 
+                SELECT "IdNumber", "FirstName", "LastName", "YearLevel", "Gender",
                        "ProgramCode", "profile_url"
                 FROM student
+                ORDER BY "IdNumber" ASC
                 LIMIT %s OFFSET %s
             """, (limit, offset))
+
             return cursor.fetchall()
+
         finally:
             cursor.close()
             conn.close()
+
 
     @staticmethod
     def add_student(data: dict):
         conn = get_connection()
         cursor = conn.cursor()
+
         try:
             cursor.execute("""
-                INSERT INTO student 
+                INSERT INTO student
                 ("IdNumber", "FirstName", "LastName", "YearLevel", "Gender", "ProgramCode", "profile_url")
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
             """, (
@@ -35,46 +45,60 @@ class StudentModel:
                 data["YearLevel"],
                 data["Gender"],
                 data["ProgramCode"],
-                data.get("profile_url")  # 🔥 new
+                data.get("profile_url")
             ))
+
             conn.commit()
+
         finally:
             cursor.close()
             conn.close()
+
 
     @staticmethod
     def delete_student(id):
         conn = get_connection()
         cursor = conn.cursor()
+
         try:
             cursor.execute(
-                'DELETE FROM student WHERE "IdNumber" = %s RETURNING "IdNumber"', 
+                'DELETE FROM student WHERE "IdNumber" = %s RETURNING "IdNumber"',
                 (id,)
             )
+
             deleted = cursor.fetchone()
             conn.commit()
+
             return deleted is not None
+
         finally:
             cursor.close()
             conn.close()
 
+
     @staticmethod
     def search_students(query_text="", limit=9, offset=0):
         conn = get_connection()
-        cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        cursor = conn.cursor(
+            cursor_factory=psycopg2.extras.RealDictCursor
+        )
+
         try:
             if query_text == "":
                 cursor.execute("""
-                    SELECT "IdNumber", "FirstName", "LastName", "YearLevel", "Gender", 
+                    SELECT "IdNumber", "FirstName", "LastName", "YearLevel", "Gender",
                            "ProgramCode", "profile_url"
                     FROM student
                     ORDER BY "IdNumber"
                     LIMIT %s OFFSET %s
                 """, (limit, offset))
+
             else:
                 q = f"%{query_text}%"
+
                 cursor.execute("""
-                    SELECT "IdNumber", "FirstName", "LastName", "YearLevel", "Gender", 
+                    SELECT "IdNumber", "FirstName", "LastName", "YearLevel", "Gender",
                            "ProgramCode", "profile_url"
                     FROM student
                     WHERE "IdNumber" ILIKE %s
@@ -85,38 +109,80 @@ class StudentModel:
                        OR "ProgramCode" ILIKE %s
                     ORDER BY "IdNumber"
                     LIMIT %s OFFSET %s
-                """, (q, q, q, q, q, q, limit, offset))
+                """, (
+                    q,
+                    q,
+                    q,
+                    q,
+                    q,
+                    q,
+                    limit,
+                    offset
+                ))
+
             return cursor.fetchall()
+
         finally:
             cursor.close()
             conn.close()
 
+
     @staticmethod
-    def sort_students(key="IdNumber", limit=9, offset=0):
+    def sort_students(
+        key="IdNumber",
+        direction="asc",
+        limit=9,
+        offset=0
+    ):
         conn = get_connection()
-        cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        cursor = conn.cursor(
+            cursor_factory=psycopg2.extras.RealDictCursor
+        )
+
         try:
-            valid_columns = {"IdNumber", "FirstName", "LastName", "YearLevel", "Gender", "ProgramCode"}
+            valid_columns = {
+                "IdNumber",
+                "FirstName",
+                "LastName",
+                "YearLevel",
+                "Gender",
+                "ProgramCode"
+            }
+
             if key not in valid_columns:
                 key = "IdNumber"
 
-            cursor.execute(f'''
-                SELECT "IdNumber", "FirstName", "LastName", "YearLevel", "Gender", 
-                       "ProgramCode", "profile_url"
-                FROM student
-                ORDER BY "{key}" ASC
-                LIMIT %s OFFSET %s
-            ''', (limit, offset))
+            direction = str(direction).lower()
+
+            if direction == "desc":
+                sql_direction = "DESC"
+            else:
+                sql_direction = "ASC"
+
+            cursor.execute(
+                f'''
+                    SELECT "IdNumber", "FirstName", "LastName", "YearLevel",
+                           "Gender", "ProgramCode", "profile_url"
+                    FROM student
+                    ORDER BY "{key}" {sql_direction}
+                    LIMIT %s OFFSET %s
+                ''',
+                (limit, offset)
+            )
 
             return cursor.fetchall()
+
         finally:
             cursor.close()
             conn.close()
+
 
     @staticmethod
     def update_student(old_id, data):
         conn = get_connection()
         cursor = conn.cursor()
+
         try:
             cursor.execute("""
                 UPDATE student
@@ -136,27 +202,37 @@ class StudentModel:
                 data["YearLevel"],
                 data["Gender"],
                 data["ProgramCode"],
-                data.get("profile_url"),  
+                data.get("profile_url"),
                 old_id
             ))
+
             updated = cursor.fetchone()
             conn.commit()
+
             return updated is not None
+
         finally:
             cursor.close()
             conn.close()
 
+
     @staticmethod
     def get_students_by_program(programcode):
         conn = get_connection()
-        cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        cursor = conn.cursor(
+            cursor_factory=psycopg2.extras.RealDictCursor
+        )
+
         try:
             cursor.execute("""
                 SELECT "IdNumber", "FirstName", "LastName", "ProgramCode", "profile_url"
                 FROM student
                 WHERE LOWER("ProgramCode") = LOWER(%s)
             """, (programcode,))
+
             return cursor.fetchall()
+
         finally:
             cursor.close()
             conn.close()
@@ -166,60 +242,95 @@ class StudentModel:
     def id_exists(id_number, exclude_id=None):
         """
         Check if an IdNumber already exists.
-        If exclude_id is given, ignore that IdNumber (for edits).
-        """
-        conn = get_connection()
-        cursor = conn.cursor()
-        try:
-            if exclude_id:
-                cursor.execute(
-                    'SELECT 1 FROM student WHERE "IdNumber" = %s AND "IdNumber" <> %s LIMIT 1',
-                    (id_number, exclude_id)
-                )
-            else:
-                cursor.execute(
-                    'SELECT 1 FROM student WHERE "IdNumber" = %s LIMIT 1',
-                    (id_number,)
-                )
-            return cursor.fetchone() is not None
-        finally:
-            cursor.close()
-            conn.close()
 
-    @staticmethod
-    def name_exists(first_name, last_name, exclude_id=None):
+        If exclude_id is given, ignore that IdNumber for edits.
         """
-        Check if a FirstName + LastName combination already exists
-        (case-insensitive). If exclude_id is given, ignore that IdNumber.
-        """
+
         conn = get_connection()
         cursor = conn.cursor()
+
         try:
             if exclude_id:
                 cursor.execute(
                     '''
-                    SELECT 1 FROM student
+                    SELECT 1
+                    FROM student
+                    WHERE "IdNumber" = %s
+                      AND "IdNumber" <> %s
+                    LIMIT 1
+                    ''',
+                    (id_number, exclude_id)
+                )
+
+            else:
+                cursor.execute(
+                    '''
+                    SELECT 1
+                    FROM student
+                    WHERE "IdNumber" = %s
+                    LIMIT 1
+                    ''',
+                    (id_number,)
+                )
+
+            return cursor.fetchone() is not None
+
+        finally:
+            cursor.close()
+            conn.close()
+
+
+    @staticmethod
+    def name_exists(first_name, last_name, exclude_id=None):
+        """
+        Check if a FirstName and LastName combination already exists.
+
+        The comparison is case-insensitive. If exclude_id is provided,
+        the current student is ignored.
+        """
+
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        try:
+            if exclude_id:
+                cursor.execute(
+                    '''
+                    SELECT 1
+                    FROM student
                     WHERE LOWER("FirstName") = LOWER(%s)
                       AND LOWER("LastName") = LOWER(%s)
                       AND "IdNumber" <> %s
                     LIMIT 1
                     ''',
-                    (first_name, last_name, exclude_id)
+                    (
+                        first_name,
+                        last_name,
+                        exclude_id
+                    )
                 )
+
             else:
                 cursor.execute(
                     '''
-                    SELECT 1 FROM student
+                    SELECT 1
+                    FROM student
                     WHERE LOWER("FirstName") = LOWER(%s)
                       AND LOWER("LastName") = LOWER(%s)
                     LIMIT 1
                     ''',
-                    (first_name, last_name)
+                    (
+                        first_name,
+                        last_name
+                    )
                 )
+
             return cursor.fetchone() is not None
+
         finally:
             cursor.close()
             conn.close()
+
 
     @staticmethod
     def get_students_filtered(
@@ -227,35 +338,51 @@ class StudentModel:
         gender=None,
         programcode=None,
         query_text="",
-        sortkey="IdNumber",
+        sortkey=None,
+        direction=None,
         limit=9,
         offset=0
     ):
         conn = get_connection()
-        cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        cursor = conn.cursor(
+            cursor_factory=psycopg2.extras.RealDictCursor
+        )
+
         try:
             base_query = """
                 SELECT "IdNumber", "FirstName", "LastName",
-                    "YearLevel", "Gender", "ProgramCode", "profile_url"
+                       "YearLevel", "Gender", "ProgramCode", "profile_url"
                 FROM student
             """
+
             conditions = []
             params = []
 
             if yearlevel:
-                conditions.append('"YearLevel" = %s')
+                conditions.append(
+                    '"YearLevel" = %s'
+                )
+
                 params.append(yearlevel)
 
             if gender:
-                conditions.append('"Gender" = %s')
+                conditions.append(
+                    '"Gender" = %s'
+                )
+
                 params.append(gender)
 
             if programcode:
-                conditions.append('LOWER("ProgramCode") = LOWER(%s)')
+                conditions.append(
+                    'LOWER("ProgramCode") = LOWER(%s)'
+                )
+
                 params.append(programcode)
 
             if query_text:
                 q = f"%{query_text}%"
+
                 conditions.append(
                     '('
                     '"IdNumber" ILIKE %s OR '
@@ -266,29 +393,70 @@ class StudentModel:
                     '"ProgramCode" ILIKE %s'
                     ')'
                 )
-                params.extend([q, q, q, q, q, q])
+
+                params.extend([
+                    q,
+                    q,
+                    q,
+                    q,
+                    q,
+                    q
+                ])
 
             if conditions:
-                base_query += " WHERE " + " AND ".join(conditions)
+                base_query += (
+                    " WHERE "
+                    + " AND ".join(conditions)
+                )
 
-            # validate sortkey to avoid SQL injection
             valid_columns = {
                 "IdNumber",
                 "FirstName",
                 "LastName",
                 "YearLevel",
                 "Gender",
-                "ProgramCode",
+                "ProgramCode"
             }
-            if sortkey not in valid_columns:
-                sortkey = "IdNumber"
 
-            base_query += f' ORDER BY "{sortkey}" LIMIT %s OFFSET %s'
-            params.extend([limit, offset])
+            if sortkey:
+                if sortkey not in valid_columns:
+                    sortkey = "IdNumber"
 
-            cursor.execute(base_query, params)
+                direction = str(
+                    direction or "asc"
+                ).lower()
+
+                if direction == "desc":
+                    sql_direction = "DESC"
+                else:
+                    sql_direction = "ASC"
+
+                base_query += (
+                    f' ORDER BY "{sortkey}" '
+                    f'{sql_direction}'
+                )
+
+            else:
+                base_query += (
+                    ' ORDER BY "IdNumber" ASC'
+                )
+
+            base_query += (
+                " LIMIT %s OFFSET %s"
+            )
+
+            params.extend([
+                limit,
+                offset
+            ])
+
+            cursor.execute(
+                base_query,
+                params
+            )
+
             return cursor.fetchall()
+
         finally:
             cursor.close()
             conn.close()
-

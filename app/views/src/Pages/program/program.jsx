@@ -9,10 +9,39 @@
   import addprogramIcon from "../../assets/images/addsubject.png"; 
 
   function Program() {
+
+ const [notification, setNotification] = useState({
+  show: false,
+  type: "success",
+  title: "",
+  message: "",
+});
+
+const showNotice = (
+  title,
+  message,
+  type = "success"
+) => {
+  setNotification({
+    show: true,
+    type,
+    title,
+    message,
+  });
+};
+
+const closeNotification = () => {
+  setNotification({
+    show: false,
+    type: "success",
+    title: "",
+    message: "",
+  });
+};
     const [programs, setPrograms] = useState([]);
     const [originalPrograms, setOriginalPrograms] = useState([]);
     const [selectedRow, setSelectedRow] = useState(null);
-    const [showSortMenu, setShowSortMenu] = useState(false);
+
     const [searchTerm, setSearchTerm] = useState("");
     const [loading, setLoading] = useState(true);
     const tableRef = useRef(null);
@@ -27,6 +56,7 @@ const [colleges, setColleges] = useState([]);
     const [showAddConfirm,setShowAddConfirm] = useState(false);
     const [showEditConfirm,setShowEditConfirm] = useState(false);
 const [activeSort, setActiveSort] = useState(null);
+const [sortDirection, setSortDirection] = useState(null);
 
 
     const [showEditForm, setShowEditForm] = useState(false);
@@ -54,7 +84,12 @@ const [activeSort, setActiveSort] = useState(null);
 
     useEffect(() => {
 
-  fetchPrograms(1);
+fetchProgramResults(
+  1,
+  "",
+  null,
+  null
+);
 
 
   fetch("http://127.0.0.1:5000/colleges/all")
@@ -89,272 +124,500 @@ const [activeSort, setActiveSort] = useState(null);
       }
     };
 
-    useEffect(() => {
-      fetchPrograms(1);
-    }, []);
+    const fetchProgramResults = async (
+  pageNum = 1,
+  queryOverride = searchTerm.trim(),
+  sortKeyOverride = activeSort,
+  directionOverride = sortDirection
+) => {
+  setLoading(true);
 
-   const handleNext = () => {
+  try {
+    const params = new URLSearchParams();
+
+    params.append("page", pageNum);
+
+    if (queryOverride) {
+      params.append("q", queryOverride);
+    }
+
+    if (sortKeyOverride && directionOverride) {
+      params.append("sortkey", sortKeyOverride);
+      params.append("direction", directionOverride);
+    }
+
+    const response = await fetch(
+      `http://127.0.0.1:5000/programs/filter?${params.toString()}`
+    );
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(
+        data.error || "Failed to load programs."
+      );
+    }
+
+    setPrograms(
+      Array.isArray(data.programs)
+        ? data.programs
+        : []
+    );
+
+    setOriginalPrograms(
+      Array.isArray(data.programs)
+        ? data.programs
+        : []
+    );
+
+    setHasNext(data.has_next || false);
+    setPage(pageNum);
+  } catch (error) {
+    console.error(
+      "Program filter error:",
+      error
+    );
+
+    showNotice(
+      "Loading Failed",
+      error.message ||
+        "The program records could not be loaded.",
+      "error"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
+  
+
+const handleNext = () => {
   if (!hasNext) return;
 
-
-  if (searchTerm.trim()) {
-    handleSearchSubmit({ preventDefault: () => {} }, page + 1);
-    return;
-  }
-
-
-  if (activeSort) {
-    fetch(`http://127.0.0.1:5000/programs/sort?key=${activeSort}&page=${page + 1}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setPrograms(data.programs || []);
-        setHasNext(data.has_next || false);
-        setPage(page + 1);
-      });
-    return;
-  }
-
-  fetchPrograms(page + 1);
+  fetchProgramResults(
+    page + 1,
+    searchTerm.trim(),
+    activeSort,
+    sortDirection
+  );
 };
+
+
 
 const handlePrev = () => {
   if (page <= 1) return;
 
-
-  if (searchTerm.trim()) {
-    handleSearchSubmit({ preventDefault: () => {} }, page - 1);
-    return;
-  }
-
-
-  if (activeSort) {
-    fetch(`http://127.0.0.1:5000/programs/sort?key=${activeSort}&page=${page - 1}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setPrograms(data.programs || []);
-        setHasNext(data.has_next || false);
-        setPage(page - 1);
-      });
-    return;
-  }
-
-  fetchPrograms(page - 1);
+  fetchProgramResults(
+    page - 1,
+    searchTerm.trim(),
+    activeSort,
+    sortDirection
+  );
 };
-
 
 
 const handleSort = (key) => {
-  setActiveSort(key === "default" ? null : key);
+  const query = searchTerm.trim();
 
-  if (key === "default") {
-    fetchPrograms(1);
-    setShowSortMenu(false);
-    return;
+  let newSortKey;
+  let newDirection;
+
+  // First click: ascending
+  if (activeSort !== key) {
+    newSortKey = key;
+    newDirection = "asc";
   }
 
-  fetch(`http://127.0.0.1:5000/programs/sort?key=${encodeURIComponent(key)}&page=1`)
-    .then((res) => res.json())
-    .then((data) => {
-      const arr = Array.isArray(data) ? data : data.programs || [];
-      setPrograms(arr);
-      setHasNext(data.has_next || arr.length === limit);
-      setPage(1);
-    })
-    .catch((err) => console.error("Error fetching sorted programs:", err))
-    .finally(() => setShowSortMenu(false));
+  // Second click: descending
+  else if (sortDirection === "asc") {
+    newSortKey = key;
+    newDirection = "desc";
+  }
+
+  // Third click: default
+  else {
+    newSortKey = null;
+    newDirection = null;
+  }
+
+  setActiveSort(newSortKey);
+  setSortDirection(newDirection);
+
+  fetchProgramResults(
+    1,
+    query,
+    newSortKey,
+    newDirection
+  );
 };
 
 
 
+const getSortArrow = (key) => {
+  let arrow = "▲▼";
 
+  if (activeSort === key) {
+    arrow =
+      sortDirection === "asc"
+        ? "▲"
+        : "▼";
+  }
 
-
-
-
+  return (
+    <span
+      style={{
+        fontSize: "8px",
+        marginLeft: "4px",
+        letterSpacing: "-2px",
+        verticalAlign: "middle",
+      }}
+    >
+      {arrow}
+    </span>
+  );
+};
 
     // Search
-   const handleSearchSubmit = (e, pageNum = 1) => {
-  e.preventDefault();
-  const q = searchTerm.trim();
-
-  if (!q) {
-    fetchPrograms(1); 
-    return;
+const handleSearchSubmit = (
+  e,
+  pageNum = 1
+) => {
+  if (e) {
+    e.preventDefault();
   }
 
-  setLoading(true);
-  fetch(`http://127.0.0.1:5000/programs/search?q=${encodeURIComponent(q)}&page=${pageNum}`)
-    .then(res => res.json())
-    .then(data => {
-      const arr = Array.isArray(data.programs) ? data.programs : [];
-      setPrograms(arr);
-      setHasNext(data.has_next || arr.length === limit);
-      setPage(pageNum);
-    })
-    .catch(console.error)
-    .finally(() => setLoading(false));
+  fetchProgramResults(
+    pageNum,
+    searchTerm.trim(),
+    activeSort,
+    sortDirection
+  );
 };
-
 
    
-    const handleDelete = () => {
-      if (!selectedRow) {
-        setDeleteMessage("⚠️ Please select a program to delete.");
-        setShowDeleteConfirm(true);
-        return;
-      }
-      setDeleteMessage(
-        `Are you sure you want to delete program ${selectedRow.programcode}?`
-      );
-      setShowDeleteConfirm(true);
-    };
 
-  const confirmDelete = async () => {
+const confirmDelete = async () => {
+  if (!selectedRow) return;
+
   try {
-    console.log(" Checking students enrolled in:", selectedRow.programcode);
+    const programCode = encodeURIComponent(selectedRow.programcode);
 
-    
     const res = await fetch(
-      `http://127.0.0.1:5000/students/by-program/${selectedRow.programcode}`
+      `http://127.0.0.1:5000/students/by-program/${programCode}`
     );
+
+    const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      console.error(" Failed to check enrolled students:", res.status);
-      setDeleteMessage(" Failed to verify enrolled students.");
+      setShowDeleteConfirm(false);
+
+      showNotice(
+        "Delete Failed",
+        data.error ||
+          "Failed to verify if students are enrolled in this program.",
+        "error"
+      );
+
       return;
     }
 
-    const data = await res.json();
-    console.log(" Response from /by-program:", data);
-
-    const studentsArray = data.students || [];
-
+    const studentsArray = Array.isArray(data.students)
+      ? data.students
+      : [];
 
     if (studentsArray.length > 0) {
-      setDeleteMessage(
-        ` Cannot delete program '${selectedRow.programcode}' because there are students enrolled in it.`
+      setShowDeleteConfirm(false);
+
+      showNotice(
+        "Cannot Delete Program",
+        `Program '${selectedRow.programcode}' cannot be deleted because there are students enrolled in it.`,
+        "warning"
       );
+
       return;
     }
-
 
     const deleteRes = await fetch(
-      `http://127.0.0.1:5000/programs/${selectedRow.programcode}`,
-      { method: "DELETE" }
+      `http://127.0.0.1:5000/programs/${programCode}`,
+      {
+        method: "DELETE",
+      }
     );
 
-    const deleteData = await deleteRes.json();
+    const deleteData = await deleteRes.json().catch(() => ({}));
 
-    if (deleteData.error) {
-      setDeleteMessage( deleteData.error);
+    if (!deleteRes.ok || deleteData.error) {
+      setShowDeleteConfirm(false);
+
+      showNotice(
+        "Delete Failed",
+        deleteData.error || "Failed to delete program.",
+        "error"
+      );
+
       return;
     }
 
-    await fetchPrograms(page);
+  await fetchProgramResults(
+  page,
+  searchTerm.trim(),
+  activeSort,
+  sortDirection
+);
+
     setSelectedRow(null);
     setShowDeleteConfirm(false);
-    alert(deleteData.message || " Program deleted successfully!");
+
+    showNotice(
+      "Program Deleted",
+      deleteData.message || "Program deleted successfully!",
+      "success"
+    );
   } catch (err) {
-    console.error("🔥 Error during deletion:", err);
-    setDeleteMessage("🔥 Failed to delete program.");
+    console.error("Error during deletion:", err);
+
+    setShowDeleteConfirm(false);
+
+    showNotice(
+      "Delete Failed",
+      "An error occurred while deleting the program.",
+      "error"
+    );
   }
 };
-
-
 
 
     const [originalProgramCode, setOriginalProgramCode] = useState("");
 
-    const handleEdit = () => {
-      if (!selectedRow) return;
-      setOriginalProgramCode(selectedRow.programcode);
-      setEditProgram({ ...selectedRow });
-      setShowEditForm(true);
-    };
+    const handleEdit = (program = selectedRow) => {
+  if (!program) return;
 
- const handleEditSave = async (e) => {
+  setSelectedRow(program);
+  setOriginalProgramCode(program.programcode);
+  setEditProgram({ ...program });
+  setShowEditForm(true);
+};
+
+const handleDelete = (program = selectedRow) => {
+  if (!program) {
+    setDeleteMessage("Please select a program to delete.");
+    setShowDeleteConfirm(true);
+    return;
+  }
+
+  setSelectedRow(program);
+
+  setDeleteMessage(
+    `Are you sure you want to delete program ${program.programcode}?`
+  );
+
+  setShowDeleteConfirm(true);
+};
+
+const handleEditSave = async (e) => {
   e.preventDefault();
 
-  if (!validateProgramEdit(editProgram, programs, originalProgramCode)) return;
+  if (
+    !validateProgramEdit(
+      editProgram,
+      programs,
+      originalProgramCode
+    )
+  ) {
+    return false;
+  }
 
   try {
-    const res = await fetch(`http://127.0.0.1:5000/programs/${originalProgramCode}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(editProgram),
-    });
+    const res = await fetch(
+      `http://127.0.0.1:5000/programs/${encodeURIComponent(
+        originalProgramCode
+      )}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(editProgram),
+      }
+    );
 
     const data = await res.json();
-    if (!res.ok) throw new Error(data?.error || "Update failed");
 
-    alert(data.message || " Program updated successfully!");
-    await fetchPrograms(page);
+    if (!res.ok) {
+      throw new Error(data.error || "Update failed.");
+    }
+
+  await fetchProgramResults(
+  page,
+  searchTerm.trim(),
+  activeSort,
+  sortDirection
+);
+
     setShowEditForm(false);
     setSelectedRow(null);
+
+showNotice(
+  "Program Updated",
+  data.message || "Program updated successfully!",
+  "success"
+);
+
+    return true;
   } catch (err) {
-    alert(err.message);
+   showNotice(
+  "Update Failed",
+  err.message || "Failed to update program.",
+  "error"
+);
+    return false;
   }
 };
 
-
 const validateProgram = (program, existingPrograms) => {
- 
+  const fieldNames = {
+    programcode: "Program code",
+    programname: "Program name",
+    collegecode: "College code",
+  };
+
   for (const [key, value] of Object.entries(program)) {
     if (!String(value).trim()) {
-      alert(`${key} is required`);
+      showNotice(
+        "Required Field",
+        `${fieldNames[key] || key} is required.`,
+        "warning"
+      );
+
       return false;
     }
   }
 
-  const programCodeLower = program.programcode.toLowerCase();
-  const programNameLower = program.programname.toLowerCase();
+  const programCodeLower = program.programcode
+    .trim()
+    .toLowerCase();
 
- 
-  if (existingPrograms.some((p) => p.programcode.toLowerCase() === programCodeLower)) {
-    alert("A program with this code already exists.");
+  const programNameLower = program.programname
+    .trim()
+    .toLowerCase();
+
+  const duplicateCode = existingPrograms.some(
+    (existingProgram) =>
+      existingProgram.programcode.trim().toLowerCase() ===
+      programCodeLower
+  );
+
+  if (duplicateCode) {
+    showNotice(
+      "Duplicate Program Code",
+      "A program with this code already exists.",
+      "warning"
+    );
+
     return false;
   }
 
+  const duplicateName = existingPrograms.some(
+    (existingProgram) =>
+      existingProgram.programname.trim().toLowerCase() ===
+      programNameLower
+  );
 
-  if (existingPrograms.some((p) => p.programname.toLowerCase() === programNameLower)) {
-    alert("A program with this name already exists.");
+  if (duplicateName) {
+    showNotice(
+      "Duplicate Program Name",
+      "A program with this name already exists.",
+      "warning"
+    );
+
     return false;
   }
 
   return true;
 };
 
-
     // Validation for editing a program
-const validateProgramEdit = (program, existingPrograms, originalCode) => {
+const validateProgramEdit = (
+  program,
+  existingPrograms,
+  originalCode
+) => {
+  const fieldNames = {
+    programcode: "Program code",
+    programname: "Program name",
+    collegecode: "College code",
+  };
+
   for (const [key, value] of Object.entries(program)) {
     if (!String(value).trim()) {
-      alert(`${key} is required`);
+      showNotice(
+        "Required Field",
+        `${fieldNames[key] || key} is required.`,
+        "warning"
+      );
+
       return false;
     }
   }
 
-  // Check duplicate program code, ignoring the original
-  if (
-    existingPrograms.some(
-      (p) =>
-        p.programcode.toLowerCase() === program.programcode.toLowerCase() &&
-        p.programcode.toLowerCase() !== originalCode.toLowerCase()
-    )
-  ) {
-    alert(" A program with this code already exists.");
+  const newCode = program.programcode
+    .trim()
+    .toLowerCase();
+
+  const newName = program.programname
+    .trim()
+    .toLowerCase();
+
+  const currentCode = originalCode
+    .trim()
+    .toLowerCase();
+
+  const duplicateCode = existingPrograms.some(
+    (existingProgram) => {
+      const existingCode = existingProgram.programcode
+        .trim()
+        .toLowerCase();
+
+      return (
+        existingCode === newCode &&
+        existingCode !== currentCode
+      );
+    }
+  );
+
+  if (duplicateCode) {
+    showNotice(
+      "Duplicate Program Code",
+      "A program with this code already exists.",
+      "warning"
+    );
+
     return false;
   }
 
-  // Check duplicate program name, ignoring the original
-  if (
-    existingPrograms.some(
-      (p) =>
-        p.programname.toLowerCase() === program.programname.toLowerCase() &&
-        p.programcode.toLowerCase() !== originalCode.toLowerCase()
-    )
-  ) {
-    alert(" A program with this name already exists.");
+  const duplicateName = existingPrograms.some(
+    (existingProgram) => {
+      const existingCode = existingProgram.programcode
+        .trim()
+        .toLowerCase();
+
+      const existingName = existingProgram.programname
+        .trim()
+        .toLowerCase();
+
+      return (
+        existingName === newName &&
+        existingCode !== currentCode
+      );
+    }
+  );
+
+  if (duplicateName) {
+    showNotice(
+      "Duplicate Program Name",
+      "A program with this name already exists.",
+      "warning"
+    );
+
     return false;
   }
 
@@ -364,27 +627,72 @@ const validateProgramEdit = (program, existingPrograms, originalCode) => {
 const handleAddProgram = async (e) => {
   e.preventDefault();
 
-  if (!validateProgram(newProgram, programs)) return;
+  const isValid = validateProgram(
+    newProgram,
+    programs
+  );
+
+  if (!isValid) {
+    return false;
+  }
 
   try {
-    const res = await fetch("http://127.0.0.1:5000/programs/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newProgram),
-    });
-    const data = await res.json();
+    const res = await fetch(
+      "http://127.0.0.1:5000/programs/",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          programcode: newProgram.programcode.trim(),
+          programname: newProgram.programname.trim(),
+          collegecode: newProgram.collegecode.trim(),
+        }),
+      }
+    );
 
-    if (res.ok) {
-      alert(" Program added successfully!");
-      setShowAddForm(false);
-      setNewProgram({ programcode: "", programname: "", collegecode: "" });
-      await fetchPrograms(page);
-    } else {
-      alert(` ${data.error || "Failed to add program"}`);
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(
+        data.error || "Failed to add program."
+      );
     }
+
+    setShowAddForm(false);
+
+    setNewProgram({
+      programcode: "",
+      programname: "",
+      collegecode: "",
+    });
+
+await fetchProgramResults(
+  page,
+  searchTerm.trim(),
+  activeSort,
+  sortDirection
+);
+
+    showNotice(
+      "Program Added",
+      data.message || "Program added successfully!",
+      "success"
+    );
+
+    return true;
   } catch (err) {
-    console.error(err);
-    alert(" An error occurred while adding the program.");
+    console.error("Error adding program:", err);
+
+    showNotice(
+      "Add Failed",
+      err.message ||
+        "An error occurred while adding the program.",
+      "error"
+    );
+
+    return false;
   }
 };
 
@@ -409,13 +717,44 @@ const handleAddProgram = async (e) => {
                 ref={tableRef}
                 style={{ color: "#2E3070", borderSpacing: "0", width: "100%" }}
               >
-                <thead>
-                  <tr>
-                    <th>Program Code</th>
-                    <th>Program Name</th>
-                    <th>College Code</th>
-                  </tr>
-                </thead>
+              <thead>
+  <tr>
+    <th
+      onClick={() => handleSort("programcode")}
+      style={{
+        cursor: "pointer",
+        userSelect: "none",
+      }}
+    >
+      Program Code{" "}
+      {getSortArrow("programcode")}
+    </th>
+
+    <th
+      onClick={() => handleSort("programname")}
+      style={{
+        cursor: "pointer",
+        userSelect: "none",
+      }}
+    >
+      Program Name{" "}
+      {getSortArrow("programname")}
+    </th>
+
+    <th
+      onClick={() => handleSort("collegecode")}
+      style={{
+        cursor: "pointer",
+        userSelect: "none",
+      }}
+    >
+      College Code{" "}
+      {getSortArrow("collegecode")}
+    </th>
+
+    <th>Actions</th>
+  </tr>
+</thead>
                <tbody>
   {programs.length > 0 ? (
     programs.map((program, rowIndex) => (
@@ -432,20 +771,90 @@ const handleAddProgram = async (e) => {
         <td>{program.programcode}</td>
         <td>{program.programname}</td>
         <td>{program.collegecode}</td>
+
+        <td>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            <button
+              type="button"
+              title="Edit program"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEdit(program);
+              }}
+            style={{
+  border: "2px solid #4956AD",
+  borderRadius: "6px",
+  padding: "6px",
+  backgroundColor: "#f8f9fd",
+  cursor: "pointer",
+}}
+            >
+              <img
+                src={editIcon}
+                alt="Edit"
+                style={{
+                  width: "20px",
+                  height: "20px",
+                  display: "block",
+                }}
+              />
+            </button>
+
+            <button
+              type="button"
+              title="Delete program"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDelete(program);
+              }}
+           style={{
+  border: "2px solid #4956AD",
+  borderRadius: "6px",
+  padding: "6px",
+  backgroundColor: "#f8f9fd",
+  cursor: "pointer",
+}}
+            >
+              <img
+                src={deleteIcon}
+                alt="Delete"
+                style={{
+                  width: "20px",
+                  height: "20px",
+                  display: "block",
+                }}
+              />
+            </button>
+          </div>
+        </td>
       </tr>
     ))
   ) : (
     <tr className="no-results">
-      <td colSpan="3" style={{ textAlign: "center", color: "#999" }}>
+      <td
+        colSpan="4"
+        style={{
+          textAlign: "center",
+          color: "#999",
+        }}
+      >
         No programs found
       </td>
     </tr>
   )}
 
-  {/* Fillers — make sure 4 total rows are always rendered */}
-  {Array.from({ length: Math.max(0, 4 - programs.length) }).map((_, i) => (
+  {Array.from({
+    length: Math.max(0, 4 - programs.length),
+  }).map((_, i) => (
     <tr key={`filler-${i}`} className="filler-row">
-      <td colSpan="3">&nbsp;</td>
+      <td colSpan="4">&nbsp;</td>
     </tr>
   ))}
 </tbody>
@@ -455,15 +864,7 @@ const handleAddProgram = async (e) => {
 
             {/* Bottom buttons */}
             <div className="bottomcon">
-              <button className="editbut" onClick={handleEdit}>
-                <img
-                  src={editIcon}
-                  alt="Edit"
-                  className="icon"
-                  style={{ width: "30px", height: "30px", position: "absolute", left: "32px" }}
-                />
-                Edit
-              </button>
+             
 
               <button className="addbut" onClick={() => setShowAddForm(true)}>
                 <img
@@ -524,66 +925,47 @@ const handleAddProgram = async (e) => {
               </div>
 
               <div className="action-buttons">
-                <button
-                  className="deletebut"
-                  onClick={handleDelete}
-                  disabled={!selectedRow}
-                >
-                  <img
-                    src={deleteIcon}
-                    alt="Delete"
-                    className="icon"
-                    style={{ width: "30px", height: "30px", position: "absolute", left: "30px" }}
-                  />
-                  Delete
-                </button>
+             
               </div>
             </div>
 
             {/* Sort & Search */}
             <div className="sortcon">
-              <button className="sortbut" onClick={() => setShowSortMenu(!showSortMenu)}>
-                <img
-                  src={sortIcon}
-                  alt="Sort"
-                  style={{ width: "30px", height: "30px", position: "absolute", left: "32px" }}
-                />
-                <img
-                  src={arrowIcon}
-                  alt="arrrowdown"
-                  style={{ width: "35px", height: "35px", position: "absolute", left: "140px" }}
-                />
-                Sort by:
-              </button>
+  <div className="search-wrapper">
+    <form onSubmit={handleSearchSubmit}>
+      <img
+        src={searchIcon}
+        alt="search"
+        className="searchIcon"
+        style={{
+          width: "35px",
+          height: "35px",
+          position: "absolute",
+          left: "77vw",
+          top: "-3.6vw",
+          zIndex: 3,
+        }}
+      />
 
-              <div className="search-wrapper">
-                <form onSubmit={handleSearchSubmit}>
-                  <img
-                    src={searchIcon}
-                    alt="search"
-                    className="searchIcon"
-                    style={{ width: "35px", height: "35px", position: "absolute", left: "77vw", top: "-3.6vw", zIndex: 3 }}
-                  />
-                  <input
-                    type="text"
-                    className="search"
-                    placeholder="Search"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                  <button type="submit" style={{ display: "none" }}>Search</button>
-                </form>
-              </div>
+      <input
+        type="text"
+        className="search"
+        placeholder="Search"
+        value={searchTerm}
+        onChange={(e) =>
+          setSearchTerm(e.target.value)
+        }
+      />
 
-              {showSortMenu && (
-                <div className="sort-popup">
-                  <p onClick={() => handleSort("default")}>Sort by: Default</p>
-                  <p onClick={() => handleSort("programcode")}>Sort by Program Code</p>
-                  <p onClick={() => handleSort("programname")}>Sort by Program Name</p>
-                  <p onClick={() => handleSort("collegecode")}>Sort by College Code</p>
-                </div>
-              )}
-            </div>
+      <button
+        type="submit"
+        style={{ display: "none" }}
+      >
+        Search
+      </button>
+    </form>
+  </div>
+</div>
 
             {/* Edit Modal */}
             {showEditForm && (
@@ -762,7 +1144,7 @@ const handleAddProgram = async (e) => {
       {showAddConfirm && (
   <div className="confirm-modal-overlay">
     <div className="confirm-modal-content">
-      <h3 style={{ color: "#2E3070" }}>Add Student</h3>
+      <h3 style={{ color: "#2E3070" }}>Add Program</h3>
       <h5 style={{ color: "#2E3070" }}>Are you sure you want to add this program?</h5>
 
       <div className="confirm-modal-buttons">
@@ -794,7 +1176,7 @@ const handleAddProgram = async (e) => {
 {showEditConfirm && (
   <div className="confirm-modal-overlay">
     <div className="confirm-modal-content">
-      <h3 style={{ color: "#2E3070" }}>Edit Student</h3>
+      <h3 style={{ color: "#2E3070" }}>Edit Program</h3>
       <h5 style={{ color: "#2E3070" }}>Are you sure you want to save changes?</h5>
 
       <div className="confirm-modal-buttons">
@@ -802,11 +1184,13 @@ const handleAddProgram = async (e) => {
         
           className="yes-btn"
            style={{ backgroundColor: "#2E3070" }}
-          onClick={async () => {
-            setShowEditConfirm(false);
-            await handleEditSave({ preventDefault: () => {} });
-            setShowEditForm(false); // close edit form
-          }}
+       onClick={async () => {
+  setShowEditConfirm(false);
+
+  await handleEditSave({
+    preventDefault: () => {},
+  });
+}}
         >
           Yes
         </button>
@@ -830,6 +1214,109 @@ const handleAddProgram = async (e) => {
             </div>
           </>
         )}
+       {notification.show && (
+  <div
+    className="modal-overlay"
+    onClick={closeNotification}
+    style={{ zIndex: 2000 }}
+  >
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        width: "380px",
+        maxWidth: "90vw",
+        backgroundColor: "#fff",
+        borderRadius: "12px",
+        overflow: "hidden",
+        boxShadow: "0 10px 35px rgba(0, 0, 0, 0.25)",
+        position: "relative",
+      }}
+    >
+      <div
+        style={{
+          minHeight: "85px",
+          backgroundColor: "#2E3070",
+          display: "flex",
+          alignItems: "center",
+          padding: "0 24px",
+          gap: "15px",
+        }}
+      >
+        <div
+          style={{
+            width: "48px",
+            height: "48px",
+            borderRadius: "50%",
+            backgroundColor:
+              notification.type === "success"
+                ? "#4CAF50"
+                : notification.type === "error"
+                ? "#d9534f"
+                : "#f0ad4e",
+            color: "#fff",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            fontSize: "26px",
+            fontWeight: "bold",
+            flexShrink: 0,
+          }}
+        >
+          {notification.type === "success"
+            ? "✓"
+            : notification.type === "error"
+            ? "×"
+            : "!"}
+        </div>
+
+        <h2
+          style={{
+            margin: 0,
+            color: "#fff",
+            fontSize: "22px",
+          }}
+        >
+          {notification.title}
+        </h2>
+      </div>
+
+      <div
+        style={{
+          padding: "28px 25px 24px",
+          textAlign: "center",
+          color: "#2E3070",
+        }}
+      >
+        <p
+          style={{
+            margin: "0 0 25px",
+            fontSize: "15px",
+            lineHeight: "1.6",
+          }}
+        >
+          {notification.message}
+        </p>
+
+        <button
+          type="button"
+          onClick={closeNotification}
+          style={{
+            minWidth: "120px",
+            padding: "10px 22px",
+            border: "none",
+            borderRadius: "7px",
+            backgroundColor: "#2E3070",
+            color: "#fff",
+            fontWeight: "bold",
+            cursor: "pointer",
+          }}
+        >
+          OK
+        </button>
+      </div>
+    </div>
+  </div>
+)}
       </div>
     );
   }
